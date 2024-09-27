@@ -1,0 +1,14 @@
+{
+    "name": "com.nonatomic.mypackage.runtime",
+    "rootNamespace": "Nonatomic.MyPackage",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

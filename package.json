@@ -1,0 +1,31 @@
+﻿{
+  "name": "com.nonatomic.mypackage",
+  "version": "0.0.0-beta",
+  "displayName": "My Package",
+  "description": "My Package",
+  "unity": "2022.3",
+  "unityRelease": "1f1",
+  "documentationUrl": "https://github.com/PaulNonatomic/MyPackage/blob/main/README.md",
+  "changelogUrl": "https://github.com/PaulNonatomic/MyPackage/blob/main/CHANGELOG.md",
+  "dependencies": {
+    "com.unity.test-framework": "1.3.9"
+  },
+  "keywords": [
+    "Unity",
+    "Package"
+  ],
+  "author": {
+    "name": "Nonatomic",
+    "email": "paul@nonatomic.co.uk",
+    "url": "https://nonatomic.co.uk/"
+  },
+  "type": "tool",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:PaulNonatomic/MyPackage.git"
+  },
+  "samples": [
+   
+  ]
+}
+  
