@@ -1,12 +1,12 @@
 ﻿{
-  "name": "com.nonatomic.mypackage",
+  "name": "com.nonatomic.timers",
   "version": "0.0.0-beta",
-  "displayName": "My Package",
-  "description": "My Package",
+  "displayName": "Timers",
+  "description": "Timers",
   "unity": "2022.3",
   "unityRelease": "1f1",
-  "documentationUrl": "https://github.com/PaulNonatomic/MyPackage/blob/main/README.md",
-  "changelogUrl": "https://github.com/PaulNonatomic/MyPackage/blob/main/CHANGELOG.md",
+  "documentationUrl": "https://github.com/PaulNonatomic/Timer/blob/main/README.md",
+  "changelogUrl": "https://github.com/PaulNonatomic/Timer/blob/main/CHANGELOG.md",
   "dependencies": {
     "com.unity.test-framework": "1.3.9"
   },
@@ -22,8 +22,12 @@
   "type": "tool",
   "repository": {
     "type": "git",
-    "url": "git@github.com:PaulNonatomic/MyPackage.git"
+    "url": "git@github.com:PaulNonatomic/Timer.git"
   },
+  "testables": [
+    "com.nonatomic.timers.tests.editmode",
+    "com.nonatomic.timers.tests.playmode"
+  ],
   "samples": [
    
   ]

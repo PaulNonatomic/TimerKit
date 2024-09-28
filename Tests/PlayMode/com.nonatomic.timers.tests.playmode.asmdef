@@ -1,5 +1,5 @@
 {
-  "name": "com.nonatomic.mypackage.tests.playmode",
+  "name": "com.nonatomic.timers.tests.playmode",
   "rootNamespace": "",
   "references": [],
   "includePlatforms": [],

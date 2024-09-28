@@ -1,6 +1,6 @@
 {
-    "name": "com.nonatomic.mypackage.runtime",
-    "rootNamespace": "Nonatomic.MyPackage",
+    "name": "com.nonatomic.timers.runtime",
+    "rootNamespace": "Nonatomic.Timers",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

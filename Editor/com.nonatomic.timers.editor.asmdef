@@ -1,8 +1,8 @@
 {
-    "name": "com.nonatomic.mypackage.editor",
-    "rootNamespace": "Nonatomic.MyPackage",
+    "name": "com.nonatomic.timers.editor",
+    "rootNamespace": "",
     "references": [
-        "com.nonatomic.mypackage.runtime"
+        "com.nonatomic.timers.runtime"
     ],
     "includePlatforms": [
         "Editor"

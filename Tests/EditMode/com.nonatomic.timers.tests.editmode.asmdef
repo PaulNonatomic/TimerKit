@@ -1,8 +1,8 @@
 {
-    "name": "com.nonatomic.mypackage.tests.editmode",
+    "name": "com.nonatomic.timers.tests.editmode",
     "rootNamespace": "",
     "references": [
-        "GUID:d8c8bb452aae45acbab36298ba796881"
+        "GUID:7946017d952266a43a1e3ab40f758d92"
     ],
     "includePlatforms": [
         "Editor"

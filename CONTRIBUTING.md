@@ -1,6 +1,6 @@
 # Contributing to MyPackage
 
-First off, thank you for considering contributing to MyPackage. Any contributions you make are **greatly appreciated**.
+First off, thank you for considering contributing to the Timers package. Any contributions you make are **greatly appreciated**.
 
 ## How to Contribute
 
@@ -9,7 +9,7 @@ There are many ways you can contribute to our project:
 - Submitting bug reports and feature requests
 - Writing tutorials or blog posts
 - Improving the documentation
-- Writing code which can be incorporated into MyPackage itself
+- Writing code which can be incorporated into the Timers package itself
 
 ### Reporting Bugs
 
@@ -30,7 +30,7 @@ Here's how you can make a pull request (PR) to the project:
 
 ## Coding Guidelines
 
-MyPackage follows the [Microsoft C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions). Please ensure your code contributions adhere to these standards.
+The Timers package follows the [Microsoft C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions). Please ensure your code contributions adhere to these standards.
 
 ## Local Development
 
@@ -43,10 +43,10 @@ Respect our code of conduct, be kind to each other, and help out with the projec
 
 ## License
 
-By contributing to MyPackage, you agree that your contributions will be licensed under MIT.
+By contributing to the Timers package, you agree that your contributions will be licensed under MIT.
 
 ## Questions?
 
 If you have any questions, please feel free to contact paul@nonatomic.co.uk
 
-Thank you for contributing to MyPackage.
+Thank you for contributing to the Timers package.
