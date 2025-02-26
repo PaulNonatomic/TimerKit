@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
-namespace Timers.Runtime
+namespace Nonatomic.Timers
 {
 	/// <summary>
 	/// Implements a basic countdown timer with start, stop, reset, fast forward, and rewind capabilities,
@@ -39,7 +38,7 @@ namespace Timers.Runtime
 		
 		private float _duration;
 		private bool _isRunning;
-		private List<TimerMilestone> _milestones = new List<TimerMilestone>();
+		private SortedList<float, TimerMilestone> _milestones = new SortedList<float, TimerMilestone>();
 		
 		/// <summary>
 		/// Initializes a new instance of the SimpleTimer class with a specified duration.
@@ -107,22 +106,24 @@ namespace Timers.Runtime
 
 		protected virtual void CheckAndTriggerMilestones()
 		{
-			_milestones.RemoveAll(milestone =>
+			while (_milestones.Count > 0 && ShouldTrigger(_milestones.Values[0]))
 			{
-				var shouldTrigger = milestone.Type switch
-				{
-					TimeType.TimeRemaining => TimeRemaining <= milestone.TriggerValue,
-					TimeType.TimeElapsed => TimeElapsed >= milestone.TriggerValue,
-					TimeType.ProgressElapsed => ProgressElapsed >= milestone.TriggerValue,
-					TimeType.ProgressRemaining => ProgressRemaining <= milestone.TriggerValue,
-					_ => throw new ArgumentOutOfRangeException()
-				};
-
-				if (!shouldTrigger) return false;
-				
+				var milestone = _milestones.Values[0];
 				milestone.Callback?.Invoke();
-				return true;  // Mark for removal
-			});
+				_milestones.RemoveAt(0);
+			}
+		}
+
+		private bool ShouldTrigger(TimerMilestone milestone)
+		{
+			return milestone.Type switch
+			{
+				TimeType.TimeRemaining => TimeRemaining <= milestone.TriggerValue,
+				TimeType.TimeElapsed => TimeElapsed >= milestone.TriggerValue,
+				TimeType.ProgressElapsed => ProgressElapsed >= milestone.TriggerValue,
+				TimeType.ProgressRemaining => ProgressRemaining <= milestone.TriggerValue,
+				_ => throw new ArgumentOutOfRangeException(nameof(milestone.Type), "Unknown TimeType")
+			};
 		}
 
 		/// <summary>
@@ -183,12 +184,12 @@ namespace Timers.Runtime
 		/// <param name="milestone">The milestone to add to the timer.</param>
 		public virtual void AddMilestone(TimerMilestone milestone)
 		{
-			_milestones.Add(milestone);
+			_milestones.Add(milestone.TriggerValue, milestone);
 		}
 		
 		public virtual void RemoveMilestone(TimerMilestone milestone)
 		{
-			_milestones.Remove(milestone);
+			_milestones.Remove(milestone.TriggerValue);
 		}
 		
 		public virtual void ClearMilestones()
@@ -198,7 +199,21 @@ namespace Timers.Runtime
 
 		public virtual void RemoveMilestonesByCondition(Predicate<TimerMilestone> condition)
 		{
-			_milestones.RemoveAll(condition);
+			// Collect keys to remove to avoid modifying the collection during iteration
+			var keysToRemove = new List<float>();
+			foreach (var pair in _milestones)
+			{
+				if (condition(pair.Value))
+				{
+					keysToRemove.Add(pair.Key);
+				}
+			}
+	
+			// Remove all identified keys
+			foreach (var key in keysToRemove)
+			{
+				_milestones.Remove(key);
+			}
 		}
 		
 		/// <summary>
