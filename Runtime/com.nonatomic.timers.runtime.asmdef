@@ -1,7 +1,9 @@
 {
     "name": "com.nonatomic.timers.runtime",
     "rootNamespace": "Nonatomic.Timers",
-    "references": [],
+    "references": [
+        "GUID:d8c8bb452aae45acbab36298ba796881"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
@@ -9,6 +11,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.nonatomic.servicelocator",
+            "expression": "0.6.1",
+            "define": "SERVICE_LOCATOR"
+        }
+    ],
     "noEngineReferences": false
 }
