@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.2.1-beta] - Feb 26, 2025
+- reduced the ServiceLocator version support to 0.5.0
+
 ## [0.2.0-beta] - Feb 26, 2025
 - Added extension support for ServiceLocator
 
