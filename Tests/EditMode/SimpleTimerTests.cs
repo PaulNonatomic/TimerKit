@@ -1,6 +1,5 @@
 ﻿using NUnit.Framework;
-using Timers.Runtime;
-using UnityEngine;
+using Nonatomic.Timers;
 
 namespace Tests.EditMode
 {
@@ -122,6 +121,22 @@ namespace Tests.EditMode
 			_simpleTimer.Rewind(3);  // 8 seconds should remain
 			_simpleTimer.FastForward(4); // 4 seconds should remain
 			Assert.AreEqual(4, _simpleTimer.TimeRemaining, "Operations should accurately modify TimeRemaining.");
+		}
+		
+		[Test]
+		public void RemoveMilestonesByCondition_Removes_Correctly()
+		{
+			var triggered1 = false;
+			var triggered2 = false;
+			var milestone1 = new TimerMilestone(TimeType.TimeRemaining, 5, () => triggered1 = true);
+			var milestone2 = new TimerMilestone(TimeType.TimeRemaining, 3, () => triggered2 = true);
+			_simpleTimer.AddMilestone(milestone1);
+			_simpleTimer.AddMilestone(milestone2);
+			_simpleTimer.RemoveMilestonesByCondition(m => m.TriggerValue == 5);
+			_simpleTimer.StartTimer();
+			_simpleTimer.Update(7); // Triggers 3, not 5
+			Assert.IsFalse(triggered1, "Removed milestone should not trigger.");
+			Assert.IsTrue(triggered2, "Remaining milestone should trigger.");
 		}
 		
 		[Test]

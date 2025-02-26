@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Timers.Runtime
+namespace Nonatomic.Timers
 {
 	/// <summary>
 	/// Defines a contract for timer functionality, allowing for starting, stopping, and resetting the timer,

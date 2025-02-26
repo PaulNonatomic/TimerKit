@@ -1,4 +1,4 @@
-﻿namespace Timers.Runtime
+﻿namespace Nonatomic.Timers
 {
 	public enum TimeType
 	{

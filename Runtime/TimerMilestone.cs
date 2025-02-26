@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Timers.Runtime
+namespace Nonatomic.Timers
 {
 	public class TimerMilestone
 	{
@@ -15,5 +15,4 @@ namespace Timers.Runtime
 			Callback = callback;
 		}
 	}
-
 }

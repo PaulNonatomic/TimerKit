@@ -1,40 +1,43 @@
-# Timers #
+# Timers
 
-## Overview ##
-Timer is a versatile, easy-to-use timer component designed for Unity projects. It supports basic timing operations like start, stop, and reset, along with advanced features such as pausing, resuming, fast forwarding, rewinding, and handling milestones that trigger custom actions.
+## Overview
+**Timers** is a versatile, easy-to-use timer component designed for Unity projects. Whether you’re building a countdown for a game level, managing cooldowns, or triggering events at specific intervals, this package provides a robust solution. It combines basic timing functionality with advanced features, all wrapped in an extensible and Unity-friendly design.
 
 ### Features
-- Basic Timer Operations: Start, stop, and reset the timer.
-- Pause and Resume: Pause the timer and resume from the last stopped point without resetting.
-- Fast Forward and Rewind: Jump forward or backward in time.
-- **Milestones:** Set up callbacks to execute when the timer reaches certain points.
-- **Serialization:** Serialize and deserialize the timer's state, useful for game saves.
-- **Extensible:** Easy to extend with additional features and integrate into larger systems.
+- **Basic Operations**: Start, stop, reset, and query the timer’s state.
+- **Pause & Resume**: Pause the timer and pick up where you left off.
+- **Fast Forward & Rewind**: Skip ahead or backtrack through time.
+- **Milestones**: Trigger custom actions at specific time or progress points.
+- **Serialization**: Save and load timer states for persistent gameplay.
+- **Unity Integration**: Works seamlessly as a MonoBehaviour or standalone class.
+- **Extensible**: Virtual methods and interfaces make customization a breeze.
 
-## Installation ##
-To install the Timers package in your Unity project, follow these steps:
+## Installation
+Add the Timers package to your Unity project via the Unity Package Manager:
 
-1. Open Unity and navigate to the Package Manager.
-   - Click on the + button and select Add package from git URL...
-   - Enter the following URL: https://github.com/PaulNonatomic/Timer and press Add.
-2. Add the Timer component onto any active GameObject in your scene, or create a new GameObject dedicated to the timer.
+1. Open the Package Manager (`Window > Package Manager`).
+2. Click the **+** button and select **"Add package from git URL"**.
+3. Enter: `https://github.com/PaulNonatomic/Timer.git`.
+4. Click **Add**.
 
-## Usage ## 
+## Usage
+Below are some practical examples to get you started with Timers in your Unity project.
 
-## API Reference ##
-* StartTimer(): Start or restart the timer.
-* StopTimer(): Pause the timer.
-* ResetTimer(): Reset the timer to its initial state.
-* ResumeTimer(): Resume the timer from the last paused state.
-* FastForward(float seconds): Advance the timer by a specified number of seconds.
-* Rewind(float seconds): Reverse the timer by a specified number of seconds.
-* AddMilestone(TimerMilestone milestone): Add a milestone that triggers a callback when reached.
-* RemoveMilestone(TimerMilestone milestone): Remove a milestone from the timer.
-* ClearMilestones(): Clears all milestones from the timer, ceasing any pending triggers.
-* RemoveMilestonesByCondition(Predicate<TimerMilestone> condition): Removes a specific milestone from the timer.
+### Example 1: Simple Countdown
+Create a 30-second countdown that logs when it’s done.
+```csharp
+using Timers.Runtime;
+using UnityEngine;
 
-## Contributing ##
-Contributions are welcome! Please refer to CONTRIBUTING.md for guidelines on how to contribute.
+public class CountdownExample : MonoBehaviour
+{
+    private Timer _timer;
 
-## License ##
-The Timers package is licensed under the MIT license. See LICENSE for more details.
+    void Start()
+    {
+        _timer = gameObject.AddComponent<Timer>();
+        _timer.Duration = 30f; // 30 seconds
+        _timer.OnComplete += () => Debug.Log("Countdown finished!");
+        _timer.StartTimer();
+    }
+}
