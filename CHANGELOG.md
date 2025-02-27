@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.3.2-beta] - Feb 27, 2025
+- Made a BaseTimerService that is easier to inherit from
+
 ## [0.3.1-beta] - Feb 27, 2025
 - Fix: Forgot to add Rewind and FastForward to the ITimer interface and the TimerService
 - 
