@@ -85,6 +85,18 @@ namespace Nonatomic.Timers
 		public virtual void ResetTimer() => _timer.ResetTimer();
 
 		/// <summary>
+		/// Advances the timer forward by a specified amount of time.
+		/// </summary>
+		/// <param name="time">The duration in seconds to fast forward the timer.</param>
+		public virtual void FastForward(float time) => _timer.FastForward(time);
+
+		/// <summary>
+		/// Rewinds the timer backward by a specified number of seconds.
+		/// </summary>
+		/// <param name="time">The amount of time, in seconds, to rewind the timer.</param>
+		public virtual void Rewind(float time) => _timer.Rewind(time);
+
+		/// <summary>
 		/// Adds a milestone to the timer that will trigger a callback when a specific timer condition is met.
 		/// </summary>
 		public virtual void AddMilestone(TimerMilestone milestone) => _timer.AddMilestone(milestone);

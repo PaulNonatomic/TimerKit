@@ -191,7 +191,21 @@ namespace Nonatomic.Timers
 		{
 			_milestones.Remove(milestone.TriggerValue);
 		}
+
+		public virtual void RemoveMilestones(TimerMilestone[] milestones)
+		{
+			foreach (var milestone in milestones)
+			{
+				_milestones.Remove(milestone.TriggerValue);
+			}
+		}
 		
+		public virtual void RemoveAllMilestones()
+		{
+			_milestones.Clear();
+		}
+		
+		[Obsolete("Use RemoveAllMilestones instead.")]
 		public virtual void ClearMilestones()
 		{
 			_milestones.Clear();
