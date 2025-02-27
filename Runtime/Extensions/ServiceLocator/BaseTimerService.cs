@@ -6,9 +6,14 @@ using UnityEngine;
 
 namespace Nonatomic.Timers.Extensions.ServiceLocator
 {
+	public interface IBaseTimerService
+	{
+	
+	}
+	
 	// Create a generic base timer service that works with any interface extending ITimer
-	public abstract class BaseTimerService<TInterface> : MonoService<TInterface>, ITimer
-		where TInterface : class, ITimer
+	public abstract class BaseTimerService<TInterface> : MonoService<TInterface>, IBaseTimerService
+		where TInterface : class, IBaseTimerService
 	{
 		public event Action OnStart;
 		public event Action OnResume;
