@@ -49,14 +49,14 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 		public virtual void Rewind(float seconds) => _timer.Rewind(seconds);
 		public virtual void AddMilestone(TimerMilestone milestone) => _timer.AddMilestone(milestone);
 		public virtual void RemoveMilestone(TimerMilestone milestone) => _timer.RemoveMilestone(milestone);
-		public virtual void ClearMilestones() => _timer.ClearMilestones();
+		public virtual void RemoveAllMilestones() => _timer.RemoveAllMilestones();
 		public virtual void RemoveMilestonesByCondition(Predicate<TimerMilestone> condition) => _timer.RemoveMilestonesByCondition(condition);
 
 		protected override void Awake()
 		{
 			base.Awake();
 			_timer = new SimpleTimer(_duration);
-			ServiceReady(); // This registers the service
+			ServiceReady();
 		}
 		
 		protected virtual void OnEnable()

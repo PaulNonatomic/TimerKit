@@ -205,12 +205,6 @@ namespace Nonatomic.Timers
 			_milestones.Clear();
 		}
 		
-		[Obsolete("Use RemoveAllMilestones instead.")]
-		public virtual void ClearMilestones()
-		{
-			_milestones.Clear();
-		}
-
 		public virtual void RemoveMilestonesByCondition(Predicate<TimerMilestone> condition)
 		{
 			// Collect keys to remove to avoid modifying the collection during iteration

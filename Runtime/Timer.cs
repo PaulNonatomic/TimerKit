@@ -105,11 +105,11 @@ namespace Nonatomic.Timers
 		/// Removes a specific milestone from the timer.
 		/// </summary>
 		public virtual void RemoveMilestone(TimerMilestone milestone) => _timer.RemoveMilestone(milestone);
-		
+
 		/// <summary>
-		/// Clears all milestones from the timer, ceasing any pending triggers.
+		/// Removes all milestones associated with the timer. This operation clears any timing checkpoints or markers that have been added.
 		/// </summary>
-		public virtual void ClearMilestones() => _timer.ClearMilestones();
+		public void RemoveAllMilestones() => _timer.RemoveAllMilestones();
 		
 		/// <summary>
 		/// Removes milestones that meet a specific condition.
