@@ -1,6 +1,6 @@
 ﻿{
   "name": "com.nonatomic.timers",
-  "version": "0.2.1-beta",
+  "version": "0.3.1-beta",
   "displayName": "Timers",
   "description": "Timers",
   "unity": "2022.3",
@@ -25,8 +25,7 @@
     "url": "git@github.com:PaulNonatomic/Timer.git"
   },
   "testables": [
-    "com.nonatomic.timers.tests.editmode",
-    "com.nonatomic.timers.tests.playmode"
+    "com.nonatomic.timers.tests.editmode"
   ],
   "samples": [
    

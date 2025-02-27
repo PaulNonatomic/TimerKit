@@ -59,6 +59,18 @@ namespace Nonatomic.Timers
 		void ResetTimer();
 
 		/// <summary>
+		/// Advances the timer forward by the specified number of seconds, reducing the remaining time.
+		/// </summary>
+		/// <param name="seconds">The amount of time in seconds to advance the timer by.</param>
+		void FastForward(float seconds);
+
+		/// <summary>
+		/// Rewinds the timer backward by a specified number of seconds.
+		/// </summary>
+		/// <param name="seconds">The number of seconds to rewind the timer.</param>
+		void Rewind(float seconds);
+
+		/// <summary>
 		/// Adds a milestone to the timer, which will trigger a specified action when the timer reaches a specific point.
 		/// </summary>
 		void AddMilestone(TimerMilestone milestone);
