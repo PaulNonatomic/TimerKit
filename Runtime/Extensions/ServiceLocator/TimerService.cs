@@ -1,4 +1,6 @@
-﻿namespace Nonatomic.Timers.Extensions.ServiceLocator
+﻿#if SERVICE_LOCATOR
+
+namespace Nonatomic.Timers.Extensions.ServiceLocator
 {
 	public interface ITimerService : IBaseTimerService, ITimer
 	{
@@ -10,3 +12,5 @@
 		
 	}
 }
+
+#endif

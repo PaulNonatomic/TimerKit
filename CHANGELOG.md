@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.3.5-beta] - Feb 27, 2025
+- Fix for missing pre processor flag in the TimerService class
+
 ## [0.3.4-beta] - Feb 27, 2025
 - Removed Obsolete Milestone methods
 
