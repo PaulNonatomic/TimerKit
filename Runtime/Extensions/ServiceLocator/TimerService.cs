@@ -93,6 +93,18 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 		public virtual void ResetTimer() => _timer.ResetTimer();
 
 		/// <summary>
+		/// Advances the timer by a specified number of seconds.
+		/// </summary>
+		/// <param name="seconds">The number of seconds to fast forward the timer by.</param>
+		public virtual void FastForward(float seconds) => _timer.FastForward(seconds);
+
+		/// <summary>
+		/// Rewinds the timer by the specified number of seconds.
+		/// </summary>
+		/// <param name="seconds">The amount of time, in seconds, to rewind the timer. Positive values move the timer backwards.</param>
+		public void Rewind(float seconds) => _timer.Rewind(seconds);
+
+		/// <summary>
 		/// Adds a milestone to the timer that will trigger a callback when a specific timer condition is met.
 		/// </summary>
 		public virtual void AddMilestone(TimerMilestone milestone) => _timer.AddMilestone(milestone);
