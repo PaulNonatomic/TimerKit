@@ -190,7 +190,7 @@ namespace Tests.EditMode
 			_simpleTimer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 3, () => firstMilestoneTriggered = true));
 			_simpleTimer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 6, () => secondMilestoneTriggered = true));
 			
-			_simpleTimer.ClearMilestones();
+			_simpleTimer.RemoveAllMilestones();
 
 			// Try to trigger any milestones after clearing them
 			_simpleTimer.StartTimer();

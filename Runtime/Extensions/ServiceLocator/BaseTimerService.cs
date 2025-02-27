@@ -6,9 +6,14 @@ using UnityEngine;
 
 namespace Nonatomic.Timers.Extensions.ServiceLocator
 {
+	public interface IBaseTimerService
+	{
+	
+	}
+	
 	// Create a generic base timer service that works with any interface extending ITimer
-	public abstract class BaseTimerService<TInterface> : MonoService<TInterface>, ITimer
-		where TInterface : class, ITimer
+	public abstract class BaseTimerService<TInterface> : MonoService<TInterface>, IBaseTimerService
+		where TInterface : class, IBaseTimerService
 	{
 		public event Action OnStart;
 		public event Action OnResume;
@@ -44,14 +49,14 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 		public virtual void Rewind(float seconds) => _timer.Rewind(seconds);
 		public virtual void AddMilestone(TimerMilestone milestone) => _timer.AddMilestone(milestone);
 		public virtual void RemoveMilestone(TimerMilestone milestone) => _timer.RemoveMilestone(milestone);
-		public virtual void ClearMilestones() => _timer.ClearMilestones();
+		public virtual void RemoveAllMilestones() => _timer.RemoveAllMilestones();
 		public virtual void RemoveMilestonesByCondition(Predicate<TimerMilestone> condition) => _timer.RemoveMilestonesByCondition(condition);
 
 		protected override void Awake()
 		{
 			base.Awake();
 			_timer = new SimpleTimer(_duration);
-			ServiceReady(); // This registers the service
+			ServiceReady();
 		}
 		
 		protected virtual void OnEnable()

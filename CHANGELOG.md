@@ -1,5 +1,14 @@
 # Change Log
 
+## [0.3.5-beta] - Feb 27, 2025
+- Fix for missing pre processor flag in the TimerService class
+
+## [0.3.4-beta] - Feb 27, 2025
+- Removed Obsolete Milestone methods
+
+## [0.3.3-beta] - Feb 27, 2025
+- Added a new interface for the BaseTimerService this allows derived timers to limit the exposed elements of the timer
+
 ## [0.3.2-beta] - Feb 27, 2025
 - Made a BaseTimerService that is easier to inherit from
 
