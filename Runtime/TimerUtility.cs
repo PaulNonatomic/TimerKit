@@ -36,7 +36,7 @@
 			return FormatTime(timer.TimeRemaining, format);
 		}
 
-		// Example Static Formatting Methods for Common Time Formats
+		// Static Formatting Methods for Common Time Formats
 		public static string FormatHHMMSSFFF(double seconds) => FormatTime(seconds, HHMMSSFFF);
 		public static string FormatHHMMSS(double seconds) => FormatTime(seconds, HHMMSS);
 		public static string FormatMMSS(double seconds) => FormatTime(seconds, MMSS);

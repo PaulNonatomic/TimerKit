@@ -47,6 +47,7 @@ namespace Nonatomic.Timers
 		public SimpleTimer(float duration)
 		{
 			Duration = duration;
+			ResetTimer();
 		}
 		
 		/// <summary>
