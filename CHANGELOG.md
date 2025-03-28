@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.3.7-beta] - Mar 28, 2025
+- Fix for Milestones triggering milestone removal during iteration
+- Added support for multiple Milestones with the same time rather than overwriting the previous one
+
+## [0.3.6-beta] - Mar 13, 2025
+- Added call to ResetTimer in the constructor so the TimeRemaining is set to the duration of the timer
+
 ## [0.3.5-beta] - Feb 27, 2025
 - Fix for missing pre processor flag in the TimerService class
 

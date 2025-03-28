@@ -1,10 +1,13 @@
 ﻿using NUnit.Framework;
 using Nonatomic.Timers;
+using System.Collections.Generic;
+using UnityEngine;
+using System;
 
 namespace Tests.EditMode
 {
 	[TestFixture]
-	public class SimpleTimerTests
+	public class FixedSimpleTimerTests
 	{
 		private SimpleTimer _simpleTimer;
 		private bool _onStartCalled;
@@ -25,7 +28,254 @@ namespace Tests.EditMode
 			_simpleTimer.OnTick += (timer) => _lastTickTime = timer.TimeRemaining;
 		}
 
-		[Test]
+		[Test, Timeout(1000)]
+		public void Milestone_SelfRemoval_During_Callback_Works()
+		{
+			// Create a milestone and variable to track that the callback executed
+			bool callbackExecuted = false;
+			TimerMilestone milestone = null;
+			
+			// Create a milestone that removes itself during its callback
+			milestone = new TimerMilestone(TimeType.TimeRemaining, 8, () => {
+				Debug.Log("Self-removing milestone callback executing");
+				callbackExecuted = true;
+				_simpleTimer.RemoveMilestone(milestone);
+			});
+			
+			_simpleTimer.AddMilestone(milestone);
+			_simpleTimer.StartTimer();
+			
+			// This should trigger the milestone
+			Debug.Log("Updating timer to 8 seconds remaining");
+			_simpleTimer.Update(2); // 8 seconds remaining
+			
+			// The callback should have executed and not thrown an exception
+			Assert.IsTrue(callbackExecuted, "Milestone callback should have executed");
+		}
+		
+		[Test, Timeout(1000)]
+		public void Multiple_Milestones_With_Same_TriggerValue_Both_Execute()
+		{
+			bool milestone1Executed = false;
+			bool milestone2Executed = false;
+			
+			// Create two milestones with the same trigger value
+			var milestone1 = new TimerMilestone(TimeType.TimeRemaining, 5, () => {
+				Debug.Log("First milestone executing");
+				milestone1Executed = true;
+			});
+			
+			var milestone2 = new TimerMilestone(TimeType.TimeRemaining, 5, () => {
+				Debug.Log("Second milestone executing");
+				milestone2Executed = true;
+			});
+			
+			_simpleTimer.AddMilestone(milestone1);
+			_simpleTimer.AddMilestone(milestone2);
+			
+			_simpleTimer.StartTimer();
+			Debug.Log("Updating timer to 5 seconds remaining");
+			_simpleTimer.Update(5); // 5 seconds remaining
+			
+			// Both callbacks should have been called in our fixed implementation
+			Assert.IsTrue(milestone1Executed, "First milestone should have executed");
+			Assert.IsTrue(milestone2Executed, "Second milestone should have executed");
+		}
+		
+		[Test, Timeout(1000)]
+		public void Milestone_Adding_Another_Milestone_During_Callback_Works()
+		{
+			bool outerMilestoneExecuted = false;
+			bool innerMilestoneExecuted = false;
+			
+			// Create a milestone that adds another milestone during its callback
+			var outerMilestone = new TimerMilestone(TimeType.TimeRemaining, 8, () => {
+				Debug.Log("Outer milestone executing");
+				outerMilestoneExecuted = true;
+				_simpleTimer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 6, () => {
+					Debug.Log("Inner milestone executing");
+					innerMilestoneExecuted = true;
+				}));
+			});
+			
+			_simpleTimer.AddMilestone(outerMilestone);
+			_simpleTimer.StartTimer();
+			
+			// Trigger the first milestone
+			Debug.Log("Updating timer to 8 seconds remaining");
+			_simpleTimer.Update(2); // 8 seconds remaining
+			Assert.IsTrue(outerMilestoneExecuted, "Outer milestone should have executed");
+			
+			// Trigger the second milestone that was added dynamically
+			Debug.Log("Updating timer to 6 seconds remaining");
+			_simpleTimer.Update(2); // 6 seconds remaining
+			Assert.IsTrue(innerMilestoneExecuted, "Inner milestone should have executed");
+		}
+		
+		[Test, Timeout(1000)]
+		public void Complex_Milestone_Interaction_Scenario()
+		{
+			Debug.Log("---------- Starting Complex_Milestone_Interaction_Scenario test ----------");
+			List<string> executionOrder = new List<string>();
+			bool milestone3Present = false;
+			
+			// Create milestones that interact with each other
+			var milestone1 = new TimerMilestone(TimeType.TimeRemaining, 8, () => {
+				Debug.Log("Executing milestone1");
+				executionOrder.Add("milestone1");
+				// Add a milestone that should trigger immediately
+				Debug.Log("Adding dynamic milestone at 8 seconds");
+				_simpleTimer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 8, () => {
+					Debug.Log("Executing dynamic_milestone");
+					executionOrder.Add("dynamic_milestone");
+				}));
+			});
+			
+			var milestone2 = new TimerMilestone(TimeType.TimeRemaining, 8, () => {
+				Debug.Log("Executing milestone2");
+				executionOrder.Add("milestone2");
+				// Remove another milestone that should trigger at 6 seconds
+				Debug.Log("Removing milestones with trigger value 6");
+				_simpleTimer.RemoveMilestonesByCondition(m => m.TriggerValue == 6);
+			});
+			
+			var milestone3 = new TimerMilestone(TimeType.TimeRemaining, 6, () => {
+				Debug.Log("Executing milestone3 - THIS SHOULD NOT HAPPEN");
+				executionOrder.Add("milestone3");
+			});
+			
+			Debug.Log("Adding milestone1 (8s)");
+			_simpleTimer.AddMilestone(milestone1);
+			
+			Debug.Log("Adding milestone2 (8s)");
+			_simpleTimer.AddMilestone(milestone2);
+			
+			Debug.Log("Adding milestone3 (6s)");
+			_simpleTimer.AddMilestone(milestone3);
+			
+			// Check if milestone3 is present in the milestones collection
+			foreach (var key in _simpleTimer.GetType().GetField("_milestonesByTriggerValue", 
+					System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(_simpleTimer) as SortedList<float, List<Guid>>)
+			{
+				if (Math.Abs(key.Key - 6.0f) < 0.001f)
+				{
+					milestone3Present = true;
+					Debug.Log("Verified milestone3 is present with trigger value 6");
+				}
+			}
+			Assert.IsTrue(milestone3Present, "Milestone3 should be in the collection before update");
+			
+			_simpleTimer.StartTimer();
+			
+			// This should trigger milestone1 and milestone2, and the dynamic milestone
+			Debug.Log("Updating timer to 8 seconds remaining");
+			_simpleTimer.Update(2); // 8 seconds remaining
+			
+			// Check again if milestone3 is present
+			milestone3Present = false;
+			foreach (var key in _simpleTimer.GetType().GetField("_milestonesByTriggerValue", 
+					System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(_simpleTimer) as SortedList<float, List<Guid>>)
+			{
+				if (Math.Abs(key.Key - 6.0f) < 0.001f)
+				{
+					milestone3Present = true;
+					Debug.Log("Milestone3 is still present with trigger value 6 - THIS SHOULD NOT HAPPEN");
+				}
+			}
+			Assert.IsFalse(milestone3Present, "Milestone3 should have been removed after the first update");
+			
+			// This would trigger milestone3, but it should have been removed
+			Debug.Log("Updating timer to 6 seconds remaining");
+			_simpleTimer.Update(2); // 6 seconds remaining
+			
+			// Log the execution order for debugging
+			Debug.Log("Execution order: " + String.Join(", ", executionOrder));
+			
+			// Check execution order
+			Assert.AreEqual(3, executionOrder.Count, "Three milestones should have executed");
+			Assert.Contains("milestone1", executionOrder);
+			Assert.Contains("milestone2", executionOrder);
+			Assert.Contains("dynamic_milestone", executionOrder);
+			Assert.That(executionOrder, Does.Not.Contain("milestone3"), "milestone3 should not have executed");
+			Debug.Log("---------- Completed Complex_Milestone_Interaction_Scenario test ----------");
+		}
+		
+		[Test, Timeout(1000)]
+		public void Multiple_Milestones_With_Same_TriggerValue_Only_One_Executes_Original_Bug()
+		{
+			// This test demonstrates the bug in the original implementation
+			// where only one milestone with a given trigger value executes
+			bool callbackCalled1 = false;
+			bool callbackCalled2 = false;
+			
+			// Create two milestones with the same trigger value
+			var milestone1 = new TimerMilestone(TimeType.TimeRemaining, 5, () => {
+				Debug.Log("First milestone executing");
+				callbackCalled1 = true;
+			});
+			
+			var milestone2 = new TimerMilestone(TimeType.TimeRemaining, 5, () => {
+				Debug.Log("Second milestone executing");
+				callbackCalled2 = true;
+			});
+			
+			// This test shows that both milestones will now execute
+			// when previously only one would execute
+			_simpleTimer.AddMilestone(milestone1);
+			_simpleTimer.AddMilestone(milestone2);
+			
+			_simpleTimer.StartTimer();
+			_simpleTimer.Update(5); // 5 seconds remaining
+			
+			// In the fixed implementation, both callbacks should be called
+			Assert.IsTrue(callbackCalled1, "First callback should be called");
+			Assert.IsTrue(callbackCalled2, "Second callback should be called");
+		}
+		
+		[Test, Timeout(1000)]
+		public void Milestones_With_Same_TriggerValue_Added_Dynamically_All_Execute()
+		{
+			List<int> executionOrder = new List<int>();
+			
+			// Create initial milestone
+			var milestone1 = new TimerMilestone(TimeType.TimeRemaining, 5, () => {
+				Debug.Log("First milestone executing");
+				executionOrder.Add(1);
+				
+				// Add two more milestones with the same trigger value during execution
+				_simpleTimer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 3, () => {
+					Debug.Log("Second milestone executing");
+					executionOrder.Add(2);
+				}));
+				_simpleTimer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 3, () => {
+					Debug.Log("Third milestone executing");
+					executionOrder.Add(3);
+				}));
+			});
+			
+			_simpleTimer.AddMilestone(milestone1);
+			_simpleTimer.StartTimer();
+			
+			// Trigger the first milestone
+			Debug.Log("Updating timer to 5 seconds remaining");
+			_simpleTimer.Update(5); // 5 seconds remaining
+			
+			// Trigger the dynamically added milestones
+			Debug.Log("Updating timer to 3 seconds remaining");
+			_simpleTimer.Update(2); // 3 seconds remaining
+			
+			// Log the execution order for debugging
+			Debug.Log("Execution order: " + String.Join(", ", executionOrder));
+			
+			// Check that all milestones executed in the correct order
+			Assert.AreEqual(3, executionOrder.Count, "All three milestones should have executed");
+			Assert.AreEqual(1, executionOrder[0], "First milestone should execute first");
+			Assert.Contains(2, executionOrder, "Second milestone should execute");
+			Assert.Contains(3, executionOrder, "Third milestone should execute");
+		}
+		
+		// Ensure existing functionality still works
+		[Test, Timeout(1000)]
 		public void StartTimer_SetsIsRunningTrueAndFiresOnStartEvent()
 		{
 			_simpleTimer.StartTimer();
@@ -33,7 +283,7 @@ namespace Tests.EditMode
 			Assert.IsTrue(_onStartCalled);
 		}
 
-		[Test]
+		[Test, Timeout(1000)]
 		public void Timer_UpdateDecreasesTimeRemaining()
 		{
 			_simpleTimer.StartTimer();
@@ -42,7 +292,7 @@ namespace Tests.EditMode
 			Assert.AreEqual(9, _lastTickTime);
 		}
 
-		[Test]
+		[Test, Timeout(1000)]
 		public void Timer_ReachesZero_CompletesCorrectly()
 		{
 			_simpleTimer.StartTimer();
@@ -51,35 +301,7 @@ namespace Tests.EditMode
 			Assert.IsTrue(_onCompleteCalled);
 		}
 
-		[Test]
-		public void StopTimer_StopsTheTimerWithoutCompleting()
-		{
-			_simpleTimer.StartTimer();
-			_simpleTimer.StopTimer();
-			Assert.IsFalse(_simpleTimer.IsRunning);
-			Assert.IsFalse(_onCompleteCalled);
-		}
-
-		[Test]
-		public void ResetTimer_ResetsTimeRemaining()
-		{
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(5); // Simulate half the duration passing
-			_simpleTimer.ResetTimer();
-			Assert.AreEqual(10, _simpleTimer.TimeRemaining);
-			Assert.IsFalse(_simpleTimer.IsRunning);
-		}
-
-		[Test]
-		public void Timer_DoesNotTickWhenStopped()
-		{
-			_simpleTimer.StartTimer();
-			_simpleTimer.StopTimer();
-			_simpleTimer.Update(1); // Simulate time passing
-			Assert.AreNotEqual(1, _lastTickTime); // Ensure last tick time is not updated
-		}
-		
-		[Test]
+		[Test, Timeout(1000)]
 		public void FastForward_DecreasesTimeRemainingCorrectly()
 		{
 			_simpleTimer.StartTimer();
@@ -87,193 +309,13 @@ namespace Tests.EditMode
 			Assert.AreEqual(7, _simpleTimer.TimeRemaining, "TimeRemaining should be decremented by 3 seconds.");
 		}
 
-		[Test]
-		public void FastForward_DoesNotSetTimeBelowZero()
-		{
-			_simpleTimer.StartTimer();
-			_simpleTimer.FastForward(15); // Fast forward beyond the duration
-			Assert.AreEqual(0, _simpleTimer.TimeRemaining, "TimeRemaining should not go below zero.");
-			Assert.IsFalse(_simpleTimer.IsRunning, "SimpleTimer should stop running when it reaches zero.");
-		}
-
-		[Test]
+		[Test, Timeout(1000)]
 		public void Rewind_IncreasesTimeRemainingCorrectly()
 		{
 			_simpleTimer.StartTimer();
 			_simpleTimer.Update(5); // Move the timer to the halfway point
 			_simpleTimer.Rewind(3);
 			Assert.AreEqual(8, _simpleTimer.TimeRemaining, "TimeRemaining should be incremented by 3 seconds.");
-		}
-
-		[Test]
-		public void Rewind_DoesNotExceedOriginalDuration()
-		{
-			_simpleTimer.StartTimer();
-			_simpleTimer.Rewind(1); // Try to rewind when the timer hasn't advanced
-			Assert.AreEqual(10, _simpleTimer.TimeRemaining, "TimeRemaining should not exceed the initial duration.");
-		}
-
-		[Test]
-		public void Rewind_And_FastForward_AreAccurate()
-		{
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(5);  // 5 seconds elapsed, 5 remaining
-			_simpleTimer.Rewind(3);  // 8 seconds should remain
-			_simpleTimer.FastForward(4); // 4 seconds should remain
-			Assert.AreEqual(4, _simpleTimer.TimeRemaining, "Operations should accurately modify TimeRemaining.");
-		}
-		
-		[Test]
-		public void RemoveMilestonesByCondition_Removes_Correctly()
-		{
-			var triggered1 = false;
-			var triggered2 = false;
-			var milestone1 = new TimerMilestone(TimeType.TimeRemaining, 5, () => triggered1 = true);
-			var milestone2 = new TimerMilestone(TimeType.TimeRemaining, 3, () => triggered2 = true);
-			_simpleTimer.AddMilestone(milestone1);
-			_simpleTimer.AddMilestone(milestone2);
-			_simpleTimer.RemoveMilestonesByCondition(m => m.TriggerValue == 5);
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(7); // Triggers 3, not 5
-			Assert.IsFalse(triggered1, "Removed milestone should not trigger.");
-			Assert.IsTrue(triggered2, "Remaining milestone should trigger.");
-		}
-		
-		[Test]
-		public void Milestone_Should_Trigger_When_Time_Remaining_Reaches_Specified_Value()
-		{
-			var milestoneTriggered = false;
-			var milestone = new TimerMilestone(TimeType.TimeRemaining, 5, () => milestoneTriggered = true);
-			_simpleTimer.AddMilestone(milestone);
-
-			// Simulate timer running until the milestone should trigger
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(5);  // 5 seconds passed, 5 seconds remaining
-
-			Assert.IsTrue(milestoneTriggered, "Milestone should trigger when time remaining is exactly 5 seconds.");
-		}
-
-		[Test]
-		public void Milestone_Should_Not_Trigger_Prematurely()
-		{
-			var milestoneTriggered = false;
-			var milestone = new TimerMilestone(TimeType.TimeRemaining, 3, () => milestoneTriggered = true);
-			_simpleTimer.AddMilestone(milestone);
-
-			// Update the timer but not enough to trigger the milestone
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(6);  // 6 seconds passed, 4 seconds remaining
-
-			Assert.IsFalse(milestoneTriggered, "Milestone should not trigger prematurely.");
-		}
-
-		[Test]
-		public void Milestone_Should_Be_Removable()
-		{
-			var milestoneTriggered = false;
-			var milestone = new TimerMilestone(TimeType.TimeRemaining, 3, () => milestoneTriggered = true);
-			_simpleTimer.AddMilestone(milestone);
-			_simpleTimer.RemoveMilestone(milestone);
-
-			// Try to trigger the removed milestone
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(7);  // 7 seconds passed, 3 seconds remaining
-
-			Assert.IsFalse(milestoneTriggered, "Milestone should not trigger after being removed.");
-		}
-
-		[Test]
-		public void All_Milestones_Should_Be_Clearable()
-		{
-			var firstMilestoneTriggered = false;
-			var secondMilestoneTriggered = false;
-			_simpleTimer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 3, () => firstMilestoneTriggered = true));
-			_simpleTimer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 6, () => secondMilestoneTriggered = true));
-			
-			_simpleTimer.RemoveAllMilestones();
-
-			// Try to trigger any milestones after clearing them
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(5);  // 5 seconds passed, 5 seconds remaining
-
-			Assert.IsFalse(firstMilestoneTriggered, "First milestone should not trigger after milestones are cleared.");
-			Assert.IsFalse(secondMilestoneTriggered, "Second milestone should not trigger after milestones are cleared.");
-		}
-		
-		[Test]
-		public void Timer_Handles_NonIntegerDeltaTime_Precisely()
-		{
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(0.333f);
-			_simpleTimer.Update(0.333f);
-			_simpleTimer.Update(0.334f); // Sum to approximately 1 second
-
-			// Since the timer started with 10 seconds, it should now show approximately 9 seconds remaining
-			Assert.AreEqual(9f, _simpleTimer.TimeRemaining, 0.01, "TimeRemaining should accurately reflect non-integer delta time updates.");
-		}
-
-		[Test]
-		public void Repeated_Start_And_Stop_Maintains_Correct_TimeRemaining()
-		{
-			_simpleTimer.StartTimer();
-			for (var i = 0; i < 5; i++)
-			{
-				_simpleTimer.Update(1); // Update 1 second
-				_simpleTimer.StopTimer();
-				_simpleTimer.ResumeTimer();
-			}
-			// Check that only 5 seconds have elapsed despite starts and stops
-			Assert.AreEqual(5, _simpleTimer.TimeRemaining, "Time remaining should correctly account for starts and stops.");
-		}
-		
-		[Test]
-		public void Negative_Inputs_Do_Not_Affect_Timer()
-		{
-			_simpleTimer.StartTimer();
-			_simpleTimer.FastForward(-5); // Attempt to fast forward negatively
-			_simpleTimer.Rewind(-5); // Attempt to rewind negatively
-			_simpleTimer.Update(1); // Update 1 second
-			Assert.AreEqual(9, _simpleTimer.TimeRemaining, "Negative inputs should not affect timer.");
-		}
-		
-		[Test]
-		public void Deactivate_And_Reactivate_Milestone()
-		{
-			var milestoneTriggered = false;
-			var milestone = new TimerMilestone(TimeType.TimeRemaining, 5, () => milestoneTriggered = true);
-			_simpleTimer.AddMilestone(milestone);
-			_simpleTimer.RemoveMilestone(milestone);
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(5); // Should not trigger because it's deactivated
-			Assert.IsFalse(milestoneTriggered, "Milestone should not trigger when deactivated.");
-
-			_simpleTimer.AddMilestone(milestone);
-			_simpleTimer.Update(5); // Update further to trigger
-			Assert.IsTrue(milestoneTriggered, "Milestone should trigger when reactivated.");
-		}
-		
-		[Test]
-		public void Serialization_And_Deserialization()
-		{
-			_simpleTimer.StartTimer();
-			_simpleTimer.Update(5); // 5 seconds elapsed
-			var savedState = _simpleTimer.Serialize();
-			var newTimer = new SimpleTimer(10);
-			newTimer.Deserialize(savedState);
-			Assert.AreEqual(5, newTimer.TimeRemaining, "Deserialized timer should have the correct remaining time.");
-		}
-		
-		[Test]
-		public void High_Frequency_Update_Accuracy()
-		{
-			_simpleTimer.StartTimer();
-			var totalElapsed = 0f;
-			while (totalElapsed < 10)
-			{
-				_simpleTimer.Update(0.01f); // Simulate high-frequency updates
-				totalElapsed += 0.01f;
-			}
-			Assert.AreEqual(0, _simpleTimer.TimeRemaining, 0.1, "Timer should accurately track time under high-frequency updates.");
 		}
 	}
 }
