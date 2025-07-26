@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.3.8-beta] - Jul 26, 2025
+- Removed empty assembly
+
 ## [0.3.7-beta] - Mar 28, 2025
 - Fix for Milestones triggering milestone removal during iteration
 - Added support for multiple Milestones with the same time rather than overwriting the previous one
