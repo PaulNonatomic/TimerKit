@@ -1,5 +1,41 @@
 # Change Log
 
+## [0.4.0-beta] - Aug 20, 2025
+
+### Added
+- **Range Milestones**: New `TimerRangeMilestone` class for triggering events at regular intervals within a time range
+- **New Timer Architecture**: Introduced `BasicTimer`, `MilestoneTimer`, and `StandardTimer` for better separation of concerns
+- **Interface Segregation**: Added `IBasicTimer` interface for basic timer operations
+- **AddRangeMilestone()** method to all timer interfaces and implementations
+- Comprehensive milestone edge case handling (self-removal, dynamic addition, multiple milestones with same trigger value)
+- Enhanced test coverage for complex milestone scenarios
+
+### Changed
+- **BREAKING**: `SimpleTimer` is now deprecated in favor of `StandardTimer` (backward compatible with obsolete warning)
+- Refactored timer inheritance hierarchy: `BasicTimer` → `MilestoneTimer` → `StandardTimer`
+- `ITimer` interface now inherits from `IBasicTimer` for better interface segregation
+- Updated all internal references to use `StandardTimer` instead of `SimpleTimer`
+- Improved milestone processing to handle complex interaction scenarios
+- Enhanced self-documenting code patterns throughout codebase
+
+### Fixed
+- Multiple milestones with the same trigger value now all execute correctly
+- Milestone self-removal during callback execution no longer causes issues
+- Dynamic milestone addition during milestone execution now works properly
+- Range milestone reset functionality now works correctly after timer reset
+
+### Deprecated
+- **`SimpleTimer`** class is deprecated; use `StandardTimer` instead (maintains full backward compatibility)
+
+### Migration Guide
+**No breaking changes** - existing code continues to work unchanged.
+
+For new projects, prefer:
+- `BasicTimer` for simple timing needs
+- `MilestoneTimer` when you need milestone support
+- `StandardTimer` for full functionality (recommended)
+- Replace `new SimpleTimer()` with `new StandardTimer()` when convenient
+
 ## [0.3.8-beta] - Jul 26, 2025
 - Removed empty assembly
 

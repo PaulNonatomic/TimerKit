@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Nonatomic.Timers
 {
 	/// <summary>
-	/// A Unity MonoBehaviour that manages a timer, allowing it to be used within the Unity Engine's update system.
-	/// It delegates timer functionality to a standard SimpleTimer object and synchronizes with Unity's game time.
+	/// A MonoBehaviour that manages a timer, allowing it to be used within the Unity lifecycle.
+	/// It delegates timer functionality to a StandardTimer object and synchronizes with Unity's game time.
 	/// </summary>
 	public class Timer : MonoBehaviour, ITimer
 	{
@@ -27,10 +27,7 @@ namespace Nonatomic.Timers
 		public float Duration
 		{
 			get => _timer.Duration;
-			set
-			{
-				_timer.Duration = value;
-			}
+			set => _timer.Duration = value;
 		}
 
 		/// <summary>
@@ -57,7 +54,7 @@ namespace Nonatomic.Timers
 		[SerializeField] private bool _useScaledTime = true;
 		[SerializeField] private bool _runOnStart = false;
 
-		private SimpleTimer _timer;
+		private StandardTimer _timer;
 
 		/// <summary>
 		/// Gets the time as either TimeRemaining, TimeElapsed, ProgressElapsed, ProgressRemaining
@@ -102,6 +99,18 @@ namespace Nonatomic.Timers
 		public virtual void AddMilestone(TimerMilestone milestone) => _timer.AddMilestone(milestone);
 		
 		/// <summary>
+		/// Adds a range milestone that triggers at regular intervals within a specified range.
+		/// </summary>
+		/// <param name="type">The time type (TimeRemaining, TimeElapsed, etc.)</param>
+		/// <param name="rangeStart">The start of the range (higher value for TimeRemaining)</param>
+		/// <param name="rangeEnd">The end of the range (lower value for TimeRemaining)</param>
+		/// <param name="interval">The interval at which to trigger callbacks</param>
+		/// <param name="callback">The callback to execute at each interval</param>
+		/// <returns>The created TimerRangeMilestone</returns>
+		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback) 
+			=> _timer.AddRangeMilestone(type, rangeStart, rangeEnd, interval, callback);
+		
+		/// <summary>
 		/// Removes a specific milestone from the timer.
 		/// </summary>
 		public virtual void RemoveMilestone(TimerMilestone milestone) => _timer.RemoveMilestone(milestone);
@@ -118,7 +127,7 @@ namespace Nonatomic.Timers
 
 		protected virtual void Awake()
 		{
-			_timer = new SimpleTimer(_duration);
+			_timer = new StandardTimer(_duration);
 		}
 		
 		protected virtual void OnEnable()
@@ -142,6 +151,7 @@ namespace Nonatomic.Timers
 		protected virtual void Start()
 		{
 			if (!_runOnStart) return;
+			
 			StartTimer();
 		}
 
@@ -150,8 +160,13 @@ namespace Nonatomic.Timers
 		/// </summary>
 		protected virtual void Update()
 		{
-			var deltaTime = _useScaledTime ? Time.deltaTime : Time.unscaledDeltaTime;
+			var deltaTime = GetDeltaTime();
 			_timer?.Update(deltaTime);
+		}
+		
+		private float GetDeltaTime()
+		{
+			return _useScaledTime ? Time.deltaTime : Time.unscaledDeltaTime;
 		}
 		
 		/// <summary>

@@ -11,7 +11,6 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 	
 	}
 	
-	// Create a generic base timer service that works with any interface extending ITimer
 	public abstract class BaseTimerService<TInterface> : MonoService<TInterface>, IBaseTimerService
 		where TInterface : class, IBaseTimerService
 	{
@@ -38,7 +37,7 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 		[SerializeField] protected bool _useScaledTime = true;
 		[SerializeField] protected bool _runOnStart = false;
 
-		protected SimpleTimer _timer;
+		protected StandardTimer _timer;
 
 		public virtual float TimeByType(TimeType type) => _timer.TimeByType(type);
 		public virtual void StartTimer() => _timer.StartTimer();
@@ -48,6 +47,8 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 		public virtual void FastForward(float seconds) => _timer.FastForward(seconds);
 		public virtual void Rewind(float seconds) => _timer.Rewind(seconds);
 		public virtual void AddMilestone(TimerMilestone milestone) => _timer.AddMilestone(milestone);
+		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback) 
+			=> _timer.AddRangeMilestone(type, rangeStart, rangeEnd, interval, callback);
 		public virtual void RemoveMilestone(TimerMilestone milestone) => _timer.RemoveMilestone(milestone);
 		public virtual void RemoveAllMilestones() => _timer.RemoveAllMilestones();
 		public virtual void RemoveMilestonesByCondition(Predicate<TimerMilestone> condition) => _timer.RemoveMilestonesByCondition(condition);
@@ -55,7 +56,7 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 		protected override void Awake()
 		{
 			base.Awake();
-			_timer = new SimpleTimer(_duration);
+			_timer = new StandardTimer(_duration);
 			ServiceReady();
 		}
 		
@@ -80,13 +81,19 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 		protected virtual void Start()
 		{
 			if (!_runOnStart) return;
+			
 			StartTimer();
 		}
 
 		protected virtual void Update()
 		{
-			var deltaTime = _useScaledTime ? Time.deltaTime : Time.unscaledDeltaTime;
+			var deltaTime = GetDeltaTime();
 			_timer?.Update(deltaTime);
+		}
+		
+		private float GetDeltaTime()
+		{
+			return _useScaledTime ? Time.deltaTime : Time.unscaledDeltaTime;
 		}
 		
 		protected virtual void HandleTimerTick(IReadOnlyTimer timer) => OnTick?.Invoke(timer);

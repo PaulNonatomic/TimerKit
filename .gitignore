@@ -72,3 +72,23 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Claude-related files and directories
+CLAUDE.md
+CLAUDE.md.meta
+.claude/
+.claude-cache/
+.claude-config/
+.claude-history/
+.claude-workspace/
+claude-artifacts/
+claude-output/
+claude-temp/
+*.claude
+*.claude.json
+*.claude.yaml
+*.claude.yml
+.clauderc
+.claude.toml
+claude-session/
+.claude-sessions/
