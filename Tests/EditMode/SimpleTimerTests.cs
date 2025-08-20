@@ -1,8 +1,8 @@
 ﻿using NUnit.Framework;
-using Nonatomic.Timers;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Nonatomic.TimerKit;
 
 namespace Tests.EditMode
 {

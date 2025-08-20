@@ -1,10 +1,10 @@
-﻿#if TIMERS_SERVICE_LOCATOR
+﻿#if TIMERKIT_SERVICE_LOCATOR_SUPPORT
 
 using System;
 using Nonatomic.ServiceLocator;
 using UnityEngine;
 
-namespace Nonatomic.Timers.Extensions.ServiceLocator
+namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 {
 	public interface IBaseTimerService : ITimer
 	{

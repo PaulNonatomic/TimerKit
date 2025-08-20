@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Nonatomic.Timers
+namespace Nonatomic.TimerKit
 {
 	/// <summary>
 	/// A basic countdown timer implementation without milestone support.

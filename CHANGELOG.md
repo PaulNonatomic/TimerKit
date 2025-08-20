@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.4.2] - Aug 20, 2025
+- The Timers package has been renamed to TimerKit
+
 ## [0.4.1] - Aug 20, 2025
 - Added ServiceKit support
 
