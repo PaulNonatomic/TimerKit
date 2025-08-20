@@ -37,7 +37,7 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 		[SerializeField] protected bool _useScaledTime = true;
 		[SerializeField] protected bool _runOnStart = false;
 
-		protected SimpleTimer _timer;
+		protected StandardTimer _timer;
 
 		public virtual float TimeByType(TimeType type) => _timer.TimeByType(type);
 		public virtual void StartTimer() => _timer.StartTimer();
@@ -56,7 +56,7 @@ namespace Nonatomic.Timers.Extensions.ServiceLocator
 		protected override void Awake()
 		{
 			base.Awake();
-			_timer = new SimpleTimer(_duration);
+			_timer = new StandardTimer(_duration);
 			ServiceReady();
 		}
 		

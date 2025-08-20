@@ -5,7 +5,7 @@ namespace Nonatomic.Timers
 {
 	/// <summary>
 	/// A MonoBehaviour that manages a timer, allowing it to be used within the Unity lifecycle.
-	/// It delegates timer functionality to a standard SimpleTimer object and synchronizes with Unity's game time.
+	/// It delegates timer functionality to a StandardTimer object and synchronizes with Unity's game time.
 	/// </summary>
 	public class Timer : MonoBehaviour, ITimer
 	{
@@ -54,7 +54,7 @@ namespace Nonatomic.Timers
 		[SerializeField] private bool _useScaledTime = true;
 		[SerializeField] private bool _runOnStart = false;
 
-		private SimpleTimer _timer;
+		private StandardTimer _timer;
 
 		/// <summary>
 		/// Gets the time as either TimeRemaining, TimeElapsed, ProgressElapsed, ProgressRemaining
@@ -127,7 +127,7 @@ namespace Nonatomic.Timers
 
 		protected virtual void Awake()
 		{
-			_timer = new SimpleTimer(_duration);
+			_timer = new StandardTimer(_duration);
 		}
 		
 		protected virtual void OnEnable()
