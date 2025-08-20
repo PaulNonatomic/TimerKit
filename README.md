@@ -8,6 +8,11 @@
 
 Whether you're building a countdown for a game level, managing cooldowns, or triggering events at specific intervals, TimerKit provides a robust solution. It combines basic timing functionality with advanced features, all wrapped in an extensible and Unity-friendly design.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PullRequests](https://img.shields.io/badge/PRs-welcome-blueviolet)](http://makeapullrequest.com)
+[![Releases](https://img.shields.io/github/v/release/PaulNonatomic/TimerKit)](https://github.com/PaulNonatomic/TimerKit/releases)
+[![Unity](https://img.shields.io/badge/Unity-2022.3+-black.svg)](https://unity3d.com/pt/get-unity/download/archive)
+
 </div>
 
 ### Features
