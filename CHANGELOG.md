@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.4.1] - Aug 20, 2025
+- Added ServiceKit support
+
 ## [0.4.0] - Aug 20, 2025
 - No longer in beta
 

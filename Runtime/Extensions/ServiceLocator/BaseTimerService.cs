@@ -1,4 +1,4 @@
-﻿#if SERVICE_LOCATOR
+﻿#if TIMERS_SERVICE_LOCATOR
 
 using System;
 using Nonatomic.ServiceLocator;
@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Nonatomic.Timers.Extensions.ServiceLocator
 {
-	public interface IBaseTimerService
+	public interface IBaseTimerService : ITimer
 	{
 	
 	}

@@ -1,6 +1,6 @@
-﻿#if TIMERS_SERVICE_LOCATOR
+﻿#if TIMERS_SERVICE_KIT
 
-namespace Nonatomic.Timers.Extensions.ServiceLocator
+namespace Nonatomic.Timers.Extensions.ServiceKit
 {
 	public interface ITimerService : IBaseTimerService
 	{
