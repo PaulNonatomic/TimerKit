@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Nonatomic.Timers
+namespace Nonatomic.TimerKit
 {
 	/// <summary>
 	/// A MonoBehaviour that manages a timer, allowing it to be used within the Unity lifecycle.

@@ -1,6 +1,6 @@
 using System;
 
-namespace Nonatomic.Timers
+namespace Nonatomic.TimerKit
 {
 	/// <summary>
 	/// Represents a range-based milestone that triggers callbacks at regular intervals within a specified range.

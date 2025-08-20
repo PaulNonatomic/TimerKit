@@ -1,4 +1,4 @@
-﻿namespace Nonatomic.Timers
+﻿namespace Nonatomic.TimerKit
 {
 	using System;
 	using static System.TimeSpan;

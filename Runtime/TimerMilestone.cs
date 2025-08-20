@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Nonatomic.Timers
+namespace Nonatomic.TimerKit
 {
 	public class TimerMilestone
 	{

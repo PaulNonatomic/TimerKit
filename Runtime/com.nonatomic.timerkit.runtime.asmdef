@@ -1,8 +1,9 @@
 {
-    "name": "com.nonatomic.timers.runtime",
-    "rootNamespace": "Nonatomic.Timers",
+    "name": "com.nonatomic.timerkit.runtime",
+    "rootNamespace": "Nonatomic.TimerKit",
     "references": [
-        "GUID:d8c8bb452aae45acbab36298ba796881"
+        "GUID:d8c8bb452aae45acbab36298ba796881",
+        "GUID:1b0144b25b4099e45a5beb8f8f7bee63"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -15,7 +16,12 @@
         {
             "name": "com.nonatomic.servicelocator",
             "expression": "0.5.0",
-            "define": "SERVICE_LOCATOR"
+            "define": "TIMERKIT_SERVICE_LOCATOR_SUPPORT"
+        },
+        {
+            "name": "com.nonatomic.servicekit",
+            "expression": "1.3.3",
+            "define": "TIMERKIT_SERVICEKIT_SUPPORT"
         }
     ],
     "noEngineReferences": false

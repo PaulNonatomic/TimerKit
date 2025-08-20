@@ -1,7 +1,14 @@
-# Timers
+<div align=center>   
 
-## Overview
-**Timers** is a versatile, easy-to-use timer component designed for Unity projects. Whether you're building a countdown for a game level, managing cooldowns, or triggering events at specific intervals, this package provides a robust solution. It combines basic timing functionality with advanced features, all wrapped in an extensible and Unity-friendly design.
+<p align="center">
+  <img src="Readme~\logo.png" width="500">
+</p>
+
+### TimerKit is a versatile, easy-to-use timer component designed for [Unity](https://unity.com/)
+
+Whether you're building a countdown for a game level, managing cooldowns, or triggering events at specific intervals, TimerKit provides a robust solution. It combines basic timing functionality with advanced features, all wrapped in an extensible and Unity-friendly design.
+
+</div>
 
 ### Features
 - **Basic Operations**: Start, stop, reset, and query the timer's state.
@@ -15,11 +22,11 @@
 - **Service Locator Support**: Optional integration with dependency injection patterns.
 
 ## Installation
-Add the Timers package to your Unity project via the Unity Package Manager:
+Add the TimerKit package to your Unity project via the Unity Package Manager:
 
 1. Open the Package Manager (`Window > Package Manager`).
 2. Click the **+** button and select **"Add package from git URL"**.
-3. Enter: `https://github.com/PaulNonatomic/Timer.git`.
+3. Enter: `https://github.com/PaulNonatomic/TimerKit.git`.
 4. Click **Add**.
 
 ## Timer Architecture
@@ -46,7 +53,7 @@ The package provides a flexible hierarchy of timer classes to suit different nee
 For Unity integration with Inspector support:
 
 ```csharp
-using Nonatomic.Timers;
+using Nonatomic.TimerKit;
 using UnityEngine;
 
 public class CountdownExample : MonoBehaviour
@@ -67,7 +74,7 @@ public class CountdownExample : MonoBehaviour
 For pure C# usage without Unity dependencies:
 
 ```csharp
-using Nonatomic.Timers;
+using Nonatomic.TimerKit;
 
 public class StandaloneExample
 {

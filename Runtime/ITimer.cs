@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Nonatomic.Timers
+namespace Nonatomic.TimerKit
 {
 	/// <summary>
 	/// Defines a contract for timer functionality with milestone support.

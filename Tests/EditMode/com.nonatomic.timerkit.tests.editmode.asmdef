@@ -1,8 +1,9 @@
 {
-    "name": "com.nonatomic.timers.tests.editmode",
+    "name": "com.nonatomic.timerkit.tests.editmode",
     "rootNamespace": "",
     "references": [
-        "GUID:7946017d952266a43a1e3ab40f758d92"
+        "GUID:7946017d952266a43a1e3ab40f758d92",
+        "GUID:eb6b9fe13e7dd23478fca248f8928c7c"
     ],
     "includePlatforms": [
         "Editor"

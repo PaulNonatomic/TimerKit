@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Nonatomic.Timers
+namespace Nonatomic.TimerKit
 {
 	/// <summary>
 	/// [DEPRECATED] This class has been renamed to StandardTimer for clarity.

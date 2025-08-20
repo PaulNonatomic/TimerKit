@@ -1,6 +1,13 @@
 # Change Log
 
-## [0.4.0-beta] - Aug 20, 2025
+## [0.4.2] - Aug 20, 2025
+- The Timers package has been renamed to TimerKit
+
+## [0.4.1] - Aug 20, 2025
+- Added ServiceKit support
+
+## [0.4.0] - Aug 20, 2025
+- No longer in beta
 
 ### Added
 - **Range Milestones**: New `TimerRangeMilestone` class for triggering events at regular intervals within a time range

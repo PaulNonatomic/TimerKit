@@ -1,12 +1,12 @@
 ﻿{
-  "name": "com.nonatomic.timers",
-  "version": "0.4.0-beta",
-  "displayName": "Timers",
-  "description": "Timers",
+  "name": "com.nonatomic.timerkit",
+  "version": "0.4.2",
+  "displayName": "TimerKit",
+  "description": "TimerKit",
   "unity": "2022.3",
   "unityRelease": "1f1",
-  "documentationUrl": "https://github.com/PaulNonatomic/Timer/blob/main/README.md",
-  "changelogUrl": "https://github.com/PaulNonatomic/Timer/blob/main/CHANGELOG.md",
+  "documentationUrl": "https://github.com/PaulNonatomic/TimerKit/blob/main/README.md",
+  "changelogUrl": "https://github.com/PaulNonatomic/TimerKit/blob/main/CHANGELOG.md",
   "dependencies": {
     "com.unity.test-framework": "1.3.9"
   },
@@ -22,10 +22,10 @@
   "type": "tool",
   "repository": {
     "type": "git",
-    "url": "git@github.com:PaulNonatomic/Timer.git"
+    "url": "git@github.com:PaulNonatomic/TimerKit.git"
   },
   "testables": [
-    "com.nonatomic.timers.tests.editmode"
+    "com.nonatomic.timerkit.tests.editmode"
   ],
   "samples": [
    

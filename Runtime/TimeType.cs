@@ -1,4 +1,4 @@
-﻿namespace Nonatomic.Timers
+﻿namespace Nonatomic.TimerKit
 {
 	public enum TimeType
 	{

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Nonatomic.Timers
+namespace Nonatomic.TimerKit
 {
 	/// <summary>
 	/// The standard full-featured timer implementation with milestone support and serialization.
