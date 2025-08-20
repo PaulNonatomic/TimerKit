@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Nonatomic.Timers
@@ -96,18 +97,25 @@ namespace Nonatomic.Timers
 		{
 			if (!_isRunning) return;
 
-			// Store the original time remaining to check if we've reached zero
 			var originalTimeRemaining = TimeRemaining;
-			
-			// Update the time remaining
 			TimeRemaining -= deltaTime;
 			
 			CheckAndTriggerMilestones();
 			OnTick?.Invoke(this);
 			
-			// Handle completion if we've reached zero
-			if (!(originalTimeRemaining > 0) || !(TimeRemaining <= 0)) return;
-			
+			if (HasCompleted(originalTimeRemaining))
+			{
+				HandleCompletion();
+			}
+		}
+		
+		private bool HasCompleted(float originalTimeRemaining)
+		{
+			return originalTimeRemaining > 0 && TimeRemaining <= 0;
+		}
+		
+		private void HandleCompletion()
+		{
 			_isRunning = false;
 			TimeRemaining = 0;
 			OnComplete?.Invoke();
@@ -116,43 +124,80 @@ namespace Nonatomic.Timers
 		protected virtual void CheckAndTriggerMilestones()
 		{
 			if (_processingMilestones) return;
+			
 			_processingMilestones = true;
 
 			try
 			{
-				// Process milestones in order of their trigger values
-				var processedTriggerValues = new HashSet<float>();
-				
-				while (true)
-				{
-					float? nextTriggerValue = null;
-					
-					foreach (var key in _milestonesByTriggerValue.Keys)
-					{
-						if (processedTriggerValues.Contains(key)) continue;
-						
-						// Get a sample milestone to check if we should process this trigger value
-						var sampleId = _milestonesByTriggerValue[key][0];
-						var sampleMilestone = _milestonesById[sampleId];
-						
-						if (!ShouldTrigger(sampleMilestone)) continue;
-						
-						if (nextTriggerValue == null || key < nextTriggerValue.Value)
-						{
-							nextTriggerValue = key;
-						}
-					}
-					
-					if (nextTriggerValue == null) break;
-					
-					// Mark this trigger value as processed
-					processedTriggerValues.Add(nextTriggerValue.Value);
-					ProcessMilestonesAtTriggerValue(nextTriggerValue.Value);
-				}
+				ProcessAllTriggeredMilestones();
 			}
 			finally
 			{
 				_processingMilestones = false;
+			}
+		}
+		
+		private void ProcessAllTriggeredMilestones()
+		{
+			var processedMilestones = new HashSet<(float triggerValue, Guid id)>();
+			
+			while (true)
+			{
+				var nextMilestone = FindNextMilestoneToProcess(processedMilestones);
+				
+				if (!nextMilestone.HasValue) break;
+				
+				MarkMilestonesAsProcessed(nextMilestone.Value.triggerValue, processedMilestones);
+				ProcessMilestonesAtTriggerValue(nextMilestone.Value.triggerValue);
+			}
+		}
+		
+		private (float triggerValue, Guid id)? FindNextMilestoneToProcess(HashSet<(float, Guid)> processedMilestones)
+		{
+			float? nextTriggerValue = null;
+			Guid? nextMilestoneId = null;
+			
+			foreach (var kvp in _milestonesByTriggerValue)
+			{
+				var result = FindTriggeredMilestoneInList(kvp.Key, kvp.Value, processedMilestones);
+				
+				if (!result.HasValue) continue;
+				
+				if (nextTriggerValue == null || kvp.Key < nextTriggerValue.Value)
+				{
+					nextTriggerValue = kvp.Key;
+					nextMilestoneId = result.Value;
+				}
+			}
+			
+			if (nextTriggerValue == null || nextMilestoneId == null) return null;
+			
+			return (nextTriggerValue.Value, nextMilestoneId.Value);
+		}
+		
+		private Guid? FindTriggeredMilestoneInList(float triggerValue, List<Guid> milestoneIds, HashSet<(float, Guid)> processedMilestones)
+		{
+			foreach (var id in milestoneIds)
+			{
+				if (processedMilestones.Contains((triggerValue, id))) continue;
+				
+				if (!_milestonesById.TryGetValue(id, out var milestone)) continue;
+				
+				if (!ShouldTrigger(milestone)) continue;
+				
+				return id;
+			}
+			
+			return null;
+		}
+		
+		private void MarkMilestonesAsProcessed(float triggerValue, HashSet<(float, Guid)> processedMilestones)
+		{
+			if (!_milestonesByTriggerValue.TryGetValue(triggerValue, out var idsToProcess)) return;
+			
+			foreach (var id in idsToProcess.ToList())
+			{
+				processedMilestones.Add((triggerValue, id));
 			}
 		}
 
@@ -160,26 +205,91 @@ namespace Nonatomic.Timers
 		{
 			if (!_milestonesByTriggerValue.TryGetValue(triggerValue, out var triggerIds) || triggerIds.Count == 0) return;
 			
-			var milestonesToTrigger = new List<TimerMilestone>(triggerIds.Count);
-			var idsToRemove = new List<Guid>(triggerIds);
+			var collectedMilestones = CollectMilestonesForProcessing(triggerIds, triggerValue);
 			
-			// Collect valid milestones
-			foreach (var id in idsToRemove)
+			RemoveMilestonesFromTriggerValue(triggerValue);
+			RemoveExhaustedMilestones(collectedMilestones.idsToRemove);
+			ReAddRangeMilestones(collectedMilestones.rangeMilestonesToReAdd);
+			InvokeMilestoneCallbacks(collectedMilestones.milestonesToTrigger);
+		}
+		
+		private (List<TimerMilestone> milestonesToTrigger, List<Guid> idsToRemove, List<(Guid id, TimerRangeMilestone milestone)> rangeMilestonesToReAdd) 
+			CollectMilestonesForProcessing(List<Guid> triggerIds, float triggerValue)
+		{
+			var milestonesToTrigger = new List<TimerMilestone>(triggerIds.Count);
+			var idsToRemove = new List<Guid>();
+			var rangeMilestonesToReAdd = new List<(Guid id, TimerRangeMilestone milestone)>();
+			
+			foreach (var id in triggerIds)
 			{
-				if (_milestonesById.TryGetValue(id, out var milestone))
-				{
-					milestonesToTrigger.Add(milestone);
-				}
+				if (!_milestonesById.TryGetValue(id, out var milestone)) continue;
+				
+				milestonesToTrigger.Add(milestone);
+				ProcessMilestoneForReAddOrRemoval(id, milestone, triggerValue, idsToRemove, rangeMilestonesToReAdd);
 			}
 			
-			// Remove all milestones for this trigger value from collections
-			_milestonesByTriggerValue.Remove(triggerValue);
+			return (milestonesToTrigger, idsToRemove, rangeMilestonesToReAdd);
+		}
+		
+		private void ProcessMilestoneForReAddOrRemoval(
+			Guid id, 
+			TimerMilestone milestone, 
+			float triggerValue,
+			List<Guid> idsToRemove, 
+			List<(Guid id, TimerRangeMilestone milestone)> rangeMilestonesToReAdd)
+		{
+			if (milestone is not TimerRangeMilestone rangeMilestone)
+			{
+				idsToRemove.Add(id);
+				return;
+			}
 			
+			rangeMilestone.LastTriggeredValue = triggerValue;
+			
+			if (rangeMilestone.HasMoreIntervals())
+			{
+				rangeMilestonesToReAdd.Add((id, rangeMilestone));
+			}
+			else
+			{
+				idsToRemove.Add(id);
+			}
+		}
+		
+		private void RemoveMilestonesFromTriggerValue(float triggerValue)
+		{
+			_milestonesByTriggerValue.Remove(triggerValue);
+		}
+		
+		private void RemoveExhaustedMilestones(List<Guid> idsToRemove)
+		{
 			foreach (var id in idsToRemove)
 			{
 				_milestonesById.Remove(id);
 			}
-			
+		}
+		
+		private void ReAddRangeMilestones(List<(Guid id, TimerRangeMilestone milestone)> rangeMilestonesToReAdd)
+		{
+			foreach (var (id, rangeMilestone) in rangeMilestonesToReAdd)
+			{
+				rangeMilestone.UpdateTriggerValue();
+				AddMilestoneToTriggerValue(id, rangeMilestone.TriggerValue);
+			}
+		}
+		
+		private void AddMilestoneToTriggerValue(Guid id, float triggerValue)
+		{
+			if (!_milestonesByTriggerValue.TryGetValue(triggerValue, out var milestoneList))
+			{
+				milestoneList = new List<Guid>();
+				_milestonesByTriggerValue[triggerValue] = milestoneList;
+			}
+			milestoneList.Add(id);
+		}
+		
+		private void InvokeMilestoneCallbacks(List<TimerMilestone> milestonesToTrigger)
+		{
 			foreach (var milestone in milestonesToTrigger)
 			{
 				milestone.Callback?.Invoke();
@@ -214,6 +324,39 @@ namespace Nonatomic.Timers
 		{
 			TimeRemaining = Duration;
 			_isRunning = false;
+			
+			ResetRangeMilestones();
+		}
+		
+		private void ResetRangeMilestones()
+		{
+			var rangeMilestonesToUpdate = CollectRangeMilestones();
+			UpdateRangeMilestonePositions(rangeMilestonesToUpdate);
+		}
+		
+		private List<(Guid id, TimerRangeMilestone milestone, float oldTriggerValue)> CollectRangeMilestones()
+		{
+			var rangeMilestonesToUpdate = new List<(Guid id, TimerRangeMilestone milestone, float oldTriggerValue)>();
+			
+			foreach (var pair in _milestonesById)
+			{
+				if (pair.Value is not TimerRangeMilestone rangeMilestone) continue;
+				
+				var oldTriggerValue = rangeMilestone.TriggerValue;
+				rangeMilestone.Reset();
+				rangeMilestonesToUpdate.Add((pair.Key, rangeMilestone, oldTriggerValue));
+			}
+			
+			return rangeMilestonesToUpdate;
+		}
+		
+		private void UpdateRangeMilestonePositions(List<(Guid id, TimerRangeMilestone milestone, float oldTriggerValue)> rangeMilestonesToUpdate)
+		{
+			foreach (var (id, rangeMilestone, oldTriggerValue) in rangeMilestonesToUpdate)
+			{
+				RemoveMilestoneFromTriggerValue(id, oldTriggerValue);
+				AddMilestoneToTriggerValue(id, rangeMilestone.TriggerValue);
+			}
 		}
 		
 		/// <summary>
@@ -222,23 +365,16 @@ namespace Nonatomic.Timers
 		/// <param name="seconds">The number of seconds to fast forward.</param>
 		public virtual void FastForward(float seconds)
 		{
-			if (seconds < 0) return; // Ignore negative values
+			if (seconds < 0) return;
 			
-			// Store original time remaining to check for completion
 			float originalTimeRemaining = TimeRemaining;
-			
-			// Update time remaining
 			TimeRemaining -= seconds;
 			
-			// Check and trigger milestones based on the new time
 			CheckAndTriggerMilestones();
 			
-			// Handle completion if we've reached zero
-			if (originalTimeRemaining > 0 && TimeRemaining <= 0)
+			if (HasCompleted(originalTimeRemaining))
 			{
-				TimeRemaining = 0;
-				_isRunning = false;
-				OnComplete?.Invoke();
+				HandleCompletion();
 			}
 			else
 			{
@@ -252,14 +388,9 @@ namespace Nonatomic.Timers
 		/// <param name="seconds">The number of seconds to rewind.</param>
 		public virtual void Rewind(float seconds)
 		{
-			if (seconds < 0) return; // Ignore negative values
+			if (seconds < 0) return;
 			
-			TimeRemaining += seconds;
-			if (TimeRemaining > Duration)
-			{
-				TimeRemaining = Duration;
-			}
-			
+			TimeRemaining = Math.Min(TimeRemaining + seconds, Duration);
 			OnTick?.Invoke(this);
 		}
 		
@@ -271,49 +402,66 @@ namespace Nonatomic.Timers
 		{
 			if (milestone == null) return;
 			
-			// Use a combination of trigger value and a unique part to ensure key uniqueness
-			// This prevents issues in the original code where milestones with the same trigger value
-			// would overwrite each other in the SortedList
 			var milestoneId = Guid.NewGuid();
 			_milestonesById[milestoneId] = milestone;
-			
-			if (!_milestonesByTriggerValue.TryGetValue(milestone.TriggerValue, out var milestoneList))
-			{
-				milestoneList = new List<Guid>();
-				_milestonesByTriggerValue[milestone.TriggerValue] = milestoneList;
-			}
-			
-			milestoneList.Add(milestoneId);
+			AddMilestoneToTriggerValue(milestoneId, milestone.TriggerValue);
+		}
+		
+		/// <summary>
+		/// Adds a range milestone that triggers at regular intervals within a specified range.
+		/// </summary>
+		/// <param name="type">The time type (TimeRemaining, TimeElapsed, etc.)</param>
+		/// <param name="rangeStart">The start of the range (higher value for TimeRemaining)</param>
+		/// <param name="rangeEnd">The end of the range (lower value for TimeRemaining)</param>
+		/// <param name="interval">The interval at which to trigger callbacks</param>
+		/// <param name="callback">The callback to execute at each interval</param>
+		/// <returns>The created TimerRangeMilestone</returns>
+		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback)
+		{
+			var rangeMilestone = new TimerRangeMilestone(type, rangeStart, rangeEnd, interval, callback);
+			AddMilestone(rangeMilestone);
+			return rangeMilestone;
 		}
 		
 		public virtual void RemoveMilestone(TimerMilestone milestone)
 		{
 			if (milestone == null) return;
 			
-			// Find the milestone ID
-			Guid? milestoneIdToRemove = null;
+			var milestoneId = FindMilestoneId(milestone);
+			
+			if (!milestoneId.HasValue) return;
+			
+			RemoveMilestoneById(milestoneId.Value, milestone.TriggerValue);
+		}
+		
+		private Guid? FindMilestoneId(TimerMilestone milestone)
+		{
 			foreach (var pair in _milestonesById)
 			{
 				if (pair.Value == milestone)
 				{
-					milestoneIdToRemove = pair.Key;
-					break;
+					return pair.Key;
 				}
 			}
 			
-			if (!milestoneIdToRemove.HasValue) return;
+			return null;
+		}
+		
+		private void RemoveMilestoneById(Guid milestoneId, float triggerValue)
+		{
+			_milestonesById.Remove(milestoneId);
+			RemoveMilestoneFromTriggerValue(milestoneId, triggerValue);
+		}
+		
+		private void RemoveMilestoneFromTriggerValue(Guid milestoneId, float triggerValue)
+		{
+			if (!_milestonesByTriggerValue.TryGetValue(triggerValue, out var list)) return;
 			
-			// Remove from both collections
-			_milestonesById.Remove(milestoneIdToRemove.Value);
+			list.Remove(milestoneId);
 			
-			// Find and remove from trigger list
-			if (_milestonesByTriggerValue.TryGetValue(milestone.TriggerValue, out var list))
+			if (list.Count == 0)
 			{
-				list.Remove(milestoneIdToRemove.Value);
-				if (list.Count == 0)
-				{
-					_milestonesByTriggerValue.Remove(milestone.TriggerValue);
-				}
+				_milestonesByTriggerValue.Remove(triggerValue);
 			}
 		}
 
@@ -335,9 +483,14 @@ namespace Nonatomic.Timers
 		{
 			if (condition == null) return;
 			
+			var milestonesToRemove = FindMilestonesMatchingCondition(condition);
+			RemoveMilestonesByIds(milestonesToRemove);
+		}
+		
+		private List<Guid> FindMilestonesMatchingCondition(Predicate<TimerMilestone> condition)
+		{
 			var milestonesToRemove = new List<Guid>();
 			
-			// Find all milestones matching the condition
 			foreach (var pair in _milestonesById)
 			{
 				if (condition(pair.Value))
@@ -346,23 +499,16 @@ namespace Nonatomic.Timers
 				}
 			}
 			
-			// Remove each milestone
-			foreach (var id in milestonesToRemove)
+			return milestonesToRemove;
+		}
+		
+		private void RemoveMilestonesByIds(List<Guid> milestoneIds)
+		{
+			foreach (var id in milestoneIds)
 			{
 				if (_milestonesById.TryGetValue(id, out var milestone))
 				{
-					// First remove from the trigger list
-					if (_milestonesByTriggerValue.TryGetValue(milestone.TriggerValue, out var list))
-					{
-						list.Remove(id);
-						if (list.Count == 0)
-						{
-							_milestonesByTriggerValue.Remove(milestone.TriggerValue);
-						}
-					}
-					
-					// Then remove from the ID dictionary
-					_milestonesById.Remove(id);
+					RemoveMilestoneById(id, milestone.TriggerValue);
 				}
 			}
 		}

@@ -317,5 +317,260 @@ namespace Tests.EditMode
 			_simpleTimer.Rewind(3);
 			Assert.AreEqual(8, _simpleTimer.TimeRemaining, "TimeRemaining should be incremented by 3 seconds.");
 		}
+		
+		[Test, Timeout(1000)]
+		public void RangeMilestone_TriggersEverySecond_ForLastXSeconds()
+		{
+			int triggerCount = 0;
+			var triggerTimes = new List<float>();
+			
+			// Add a range milestone for the last 5 seconds (TimeRemaining: 5 to 0, every 1 second)
+			var rangeMilestone = _simpleTimer.AddRangeMilestone(
+				TimeType.TimeRemaining, 
+				5,  // Start at 5 seconds remaining
+				0,  // End at 0 seconds remaining
+				1,  // Trigger every 1 second
+				() => {
+					triggerCount++;
+					triggerTimes.Add(_simpleTimer.TimeRemaining);
+					Debug.Log($"Range milestone triggered at {_simpleTimer.TimeRemaining} seconds remaining");
+				}
+			);
+			
+			_simpleTimer.StartTimer();
+			
+			// Update timer to 5 seconds remaining
+			_simpleTimer.Update(5); // Now at 5 seconds remaining - should trigger first time
+			Assert.AreEqual(1, triggerCount, "Should have triggered once at 5 seconds");
+			
+			// Update to 4 seconds remaining
+			_simpleTimer.Update(1); // Now at 4 seconds remaining - should trigger second time
+			Assert.AreEqual(2, triggerCount, "Should have triggered twice");
+			
+			// Update to 3 seconds remaining
+			_simpleTimer.Update(1); // Now at 3 seconds remaining
+			Assert.AreEqual(3, triggerCount, "Should have triggered three times");
+			
+			// Update to 2 seconds remaining
+			_simpleTimer.Update(1); // Now at 2 seconds remaining
+			Assert.AreEqual(4, triggerCount, "Should have triggered four times");
+			
+			// Update to 1 second remaining
+			_simpleTimer.Update(1); // Now at 1 second remaining
+			Assert.AreEqual(5, triggerCount, "Should have triggered five times");
+			
+			// Update to 0 seconds remaining
+			_simpleTimer.Update(1); // Now at 0 seconds remaining
+			Assert.AreEqual(6, triggerCount, "Should have triggered six times (including at 0)");
+			
+			// Verify the trigger times
+			Assert.AreEqual(6, triggerTimes.Count);
+			Assert.AreEqual(5, triggerTimes[0], 0.01f, "First trigger at 5 seconds");
+			Assert.AreEqual(4, triggerTimes[1], 0.01f, "Second trigger at 4 seconds");
+			Assert.AreEqual(3, triggerTimes[2], 0.01f, "Third trigger at 3 seconds");
+			Assert.AreEqual(2, triggerTimes[3], 0.01f, "Fourth trigger at 2 seconds");
+			Assert.AreEqual(1, triggerTimes[4], 0.01f, "Fifth trigger at 1 second");
+			Assert.AreEqual(0, triggerTimes[5], 0.01f, "Sixth trigger at 0 seconds");
+		}
+		
+		[Test, Timeout(1000)]
+		public void RangeMilestone_WithLargeStep_TriggersCorrectly()
+		{
+			int triggerCount = 0;
+			
+			// Test with a large step that skips multiple intervals at once
+			_simpleTimer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				8,  // Start at 8 seconds
+				2,  // End at 2 seconds
+				2,  // Trigger every 2 seconds
+				() => {
+					triggerCount++;
+					Debug.Log($"Triggered at {_simpleTimer.TimeRemaining} seconds remaining");
+				}
+			);
+			
+			_simpleTimer.StartTimer();
+			
+			// Jump directly from 10 to 3 seconds remaining (skipping multiple intervals)
+			_simpleTimer.Update(7); // Now at 3 seconds remaining
+			
+			// Should have triggered at 8, 6, and 4 (but not 2 yet since we're at 3)
+			Assert.AreEqual(3, triggerCount, "Should have triggered for 8, 6, and 4 seconds");
+			
+			// Update to 1 second remaining
+			_simpleTimer.Update(2); // Now at 1 second remaining
+			
+			// Should have triggered at 2 seconds as well
+			Assert.AreEqual(4, triggerCount, "Should have triggered at 2 seconds as well");
+		}
+		
+		[Test, Timeout(1000)]
+		public void RangeMilestone_TimeElapsed_WorksCorrectly()
+		{
+			int triggerCount = 0;
+			var triggerTimes = new List<float>();
+			
+			// Add a range milestone for TimeElapsed from 2 to 5 seconds, every 1 second
+			_simpleTimer.AddRangeMilestone(
+				TimeType.TimeElapsed,
+				2,  // Start at 2 seconds elapsed
+				5,  // End at 5 seconds elapsed
+				1,  // Trigger every 1 second
+				() => {
+					triggerCount++;
+					triggerTimes.Add(_simpleTimer.TimeElapsed);
+					Debug.Log($"Triggered at {_simpleTimer.TimeElapsed} seconds elapsed");
+				}
+			);
+			
+			_simpleTimer.StartTimer();
+			
+			// Update to 1 second elapsed - no trigger yet
+			_simpleTimer.Update(1);
+			Assert.AreEqual(0, triggerCount, "Should not trigger before range start");
+			
+			// Update to 2 seconds elapsed - first trigger
+			_simpleTimer.Update(1);
+			Assert.AreEqual(1, triggerCount, "Should trigger at range start");
+			
+			// Update to 3 seconds elapsed
+			_simpleTimer.Update(1);
+			Assert.AreEqual(2, triggerCount, "Should trigger at 3 seconds");
+			
+			// Update to 4 seconds elapsed
+			_simpleTimer.Update(1);
+			Assert.AreEqual(3, triggerCount, "Should trigger at 4 seconds");
+			
+			// Update to 5 seconds elapsed
+			_simpleTimer.Update(1);
+			Assert.AreEqual(4, triggerCount, "Should trigger at 5 seconds");
+			
+			// Update to 6 seconds elapsed - no more triggers
+			_simpleTimer.Update(1);
+			Assert.AreEqual(4, triggerCount, "Should not trigger after range end");
+		}
+		
+		[Test, Timeout(1000)]
+		public void RangeMilestone_RemovalDuringCallback_Works()
+		{
+			int triggerCount = 0;
+			TimerRangeMilestone rangeMilestone = null;
+			
+			// Create a range milestone that removes itself after 2 triggers
+			rangeMilestone = _simpleTimer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5,
+				0,
+				1,
+				() => {
+					triggerCount++;
+					Debug.Log($"Range milestone triggered (count: {triggerCount})");
+					if (triggerCount == 2)
+					{
+						_simpleTimer.RemoveMilestone(rangeMilestone);
+						Debug.Log("Range milestone removed itself");
+					}
+				}
+			);
+			
+			_simpleTimer.StartTimer();
+			
+			// Trigger at 5 seconds
+			_simpleTimer.Update(5);
+			Assert.AreEqual(1, triggerCount, "First trigger");
+			
+			// Trigger at 4 seconds and remove
+			_simpleTimer.Update(1);
+			Assert.AreEqual(2, triggerCount, "Second trigger (milestone removes itself)");
+			
+			// No more triggers
+			_simpleTimer.Update(1); // 3 seconds
+			_simpleTimer.Update(1); // 2 seconds
+			_simpleTimer.Update(1); // 1 second
+			_simpleTimer.Update(1); // 0 seconds
+			
+			Assert.AreEqual(2, triggerCount, "Should not trigger after removal");
+		}
+		
+		[Test, Timeout(1000)]
+		public void RangeMilestone_Reset_WorksCorrectly()
+		{
+			int triggerCount = 0;
+			
+			_simpleTimer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				3,
+				0,
+				1,
+				() => triggerCount++
+			);
+			
+			_simpleTimer.StartTimer();
+			
+			// Trigger some milestones
+			_simpleTimer.Update(7); // 3 seconds remaining
+			_simpleTimer.Update(1); // 2 seconds remaining
+			Assert.AreEqual(2, triggerCount, "Should have triggered twice");
+			
+			// Reset the timer
+			_simpleTimer.ResetTimer();
+			_simpleTimer.StartTimer();
+			
+			// Should trigger again from the beginning
+			_simpleTimer.Update(7); // 3 seconds remaining
+			Assert.AreEqual(3, triggerCount, "Should trigger again after reset");
+			
+			_simpleTimer.Update(1); // 2 seconds remaining
+			Assert.AreEqual(4, triggerCount, "Should continue triggering after reset");
+		}
+		
+		[Test, Timeout(1000)]
+		public void Multiple_RangeMilestones_WorkTogether()
+		{
+			int everySecondCount = 0;
+			int everyTwoSecondsCount = 0;
+			
+			// Add milestone for every second in last 5 seconds
+			_simpleTimer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5, 0, 1,
+				() => everySecondCount++
+			);
+			
+			// Add milestone for every 2 seconds in last 6 seconds
+			_simpleTimer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				6, 0, 2,
+				() => everyTwoSecondsCount++
+			);
+			
+			_simpleTimer.StartTimer();
+			
+			// Update to 6 seconds remaining
+			_simpleTimer.Update(4);
+			Assert.AreEqual(0, everySecondCount, "First milestone not triggered yet");
+			Assert.AreEqual(1, everyTwoSecondsCount, "Second milestone triggered once");
+			
+			// Update to 5 seconds remaining
+			_simpleTimer.Update(1);
+			Assert.AreEqual(1, everySecondCount, "First milestone triggered once");
+			Assert.AreEqual(1, everyTwoSecondsCount, "Second milestone still once");
+			
+			// Update to 4 seconds remaining
+			_simpleTimer.Update(1);
+			Assert.AreEqual(2, everySecondCount, "First milestone triggered twice");
+			Assert.AreEqual(2, everyTwoSecondsCount, "Second milestone triggered twice");
+			
+			// Update to 2 seconds remaining
+			_simpleTimer.Update(2);
+			Assert.AreEqual(4, everySecondCount, "First milestone triggered 4 times");
+			Assert.AreEqual(3, everyTwoSecondsCount, "Second milestone triggered 3 times");
+			
+			// Update to 0 seconds remaining
+			_simpleTimer.Update(2);
+			Assert.AreEqual(6, everySecondCount, "First milestone triggered 6 times total");
+			Assert.AreEqual(4, everyTwoSecondsCount, "Second milestone triggered 4 times total");
+		}
 	}
 }
