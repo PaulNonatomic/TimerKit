@@ -1,4 +1,6 @@
 # Change Log
+## [0.4.3] - Sep 2, 2025
+- Hotfix for ServiceKit update
 
 ## [0.4.2] - Aug 20, 2025
 - The Timers package has been renamed to TimerKit
