@@ -1,4 +1,27 @@
 # Change Log
+## [0.5.0] - 2025-01-16
+### Added
+- **ITimeSource Interface**: New interface for external time synchronization, allowing timers to use custom time sources
+- **TimeSourceProvider Component**: Abstract MonoBehaviour that automatically connects to Timer components as their time source
+- **preserveTimeSourceValue Parameter**: New optional parameter in timer constructors to preserve existing time source values when connecting
+- Comprehensive tests for ITimeSource functionality and TimeSourceProvider integration
+
+### Changed
+- All timer constructors now accept optional ITimeSource parameter for external time synchronization
+- Timer.SetTimeSource() method now preserves time source values by default when connecting providers
+- Improved code organization with extracted helper methods for better readability and maintainability
+- Enhanced variable naming throughout codebase for better self-documentation:
+  - `processedMilestones` → `alreadyTriggeredMilestones`
+  - `nextTriggerValue` → `lowestUnprocessedTriggerValue`
+  - `idsToRemove` → `exhaustedMilestoneIds`
+  - `rangeMilestonesToReAdd` → `recurringMilestones`
+
+### Improved
+- Code now better adheres to SOLID principles with smaller, focused methods
+- Removed unnecessary explanatory comments in favor of self-documenting code
+- Fixed typos and improved documentation clarity
+- Extracted complex logic into well-named helper methods in MilestoneTimer
+
 ## [0.4.3] - Sep 2, 2025
 - Hotfix for ServiceKit update
 

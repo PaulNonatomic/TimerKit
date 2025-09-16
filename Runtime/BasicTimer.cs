@@ -28,7 +28,21 @@ namespace Nonatomic.TimerKit
 			}
 		}
 		
-		public float TimeRemaining { get; private set; }
+		public float TimeRemaining 
+		{ 
+			get => _timeSource?.GetTimeRemaining() ?? _internalTimeRemaining;
+			private set
+			{
+				if (_timeSource != null && _timeSource.CanSetTime)
+				{
+					_timeSource.SetTimeRemaining(value);
+				}
+				else if (_timeSource == null)
+				{
+					_internalTimeRemaining = value;
+				}
+			}
+		}
 		public float TimeElapsed => Duration - TimeRemaining;
 		public float ProgressElapsed => TimeElapsed / Duration;
 		public float ProgressRemaining => 1 - ProgressElapsed;
@@ -36,15 +50,28 @@ namespace Nonatomic.TimerKit
 		
 		private float _duration;
 		private bool _isRunning;
+		private float _internalTimeRemaining;
+		private ITimeSource _timeSource;
 
 		/// <summary>
 		/// Initializes a new instance of the BasicTimer class with a specified duration.
 		/// </summary>
 		/// <param name="duration">The total time in seconds that the timer will run.</param>
-		public BasicTimer(float duration)
+		/// <param name="timeSource">Optional custom time source. If null, uses internal time management.</param>
+		/// <param name="preserveTimeSourceValue">If true and timeSource is provided, preserves the time source's current value instead of resetting to duration.</param>
+		public BasicTimer(float duration, ITimeSource timeSource = null, bool preserveTimeSourceValue = false)
 		{
+			_timeSource = timeSource;
 			Duration = duration;
-			ResetTimer();
+			
+			if (preserveTimeSourceValue && timeSource != null)
+			{
+				_isRunning = false;
+			}
+			else
+			{
+				ResetTimer();
+			}
 		}
 		
 		/// <summary>
@@ -67,7 +94,10 @@ namespace Nonatomic.TimerKit
 		/// </summary>
 		public virtual void StartTimer()
 		{
-			TimeRemaining = Duration;
+			if (_timeSource == null || _timeSource.CanSetTime)
+			{
+				TimeRemaining = Duration;
+			}
 			_isRunning = true;
 			OnStart?.Invoke();
 		}
@@ -92,7 +122,15 @@ namespace Nonatomic.TimerKit
 			if (!_isRunning) return;
 
 			var originalTimeRemaining = TimeRemaining;
-			TimeRemaining -= deltaTime;
+			
+			if (_timeSource != null && _timeSource.CanSetTime)
+			{
+				TimeRemaining -= deltaTime;
+			}
+			else if (_timeSource == null)
+			{
+				_internalTimeRemaining -= deltaTime;
+			}
 			
 			OnTimerUpdated();
 			OnTick?.Invoke(this);
@@ -109,7 +147,6 @@ namespace Nonatomic.TimerKit
 		/// </summary>
 		protected virtual void OnTimerUpdated()
 		{
-			// Base implementation does nothing - override in derived classes
 		}
 		
 		private bool HasCompleted(float originalTimeRemaining)
@@ -138,7 +175,10 @@ namespace Nonatomic.TimerKit
 		/// </summary>
 		public virtual void ResetTimer()
 		{
-			TimeRemaining = Duration;
+			if (_timeSource == null || _timeSource.CanSetTime)
+			{
+				TimeRemaining = Duration;
+			}
 			_isRunning = false;
 			OnTimerReset();
 		}
@@ -149,7 +189,6 @@ namespace Nonatomic.TimerKit
 		/// </summary>
 		protected virtual void OnTimerReset()
 		{
-			// Base implementation does nothing - override in derived classes
 		}
 		
 		/// <summary>
@@ -159,6 +198,7 @@ namespace Nonatomic.TimerKit
 		public virtual void FastForward(float seconds)
 		{
 			if (seconds < 0) return;
+			if (_timeSource != null && !_timeSource.CanSetTime) return; // Can't fast forward read-only time source
 			
 			float originalTimeRemaining = TimeRemaining;
 			TimeRemaining -= seconds;
@@ -182,6 +222,7 @@ namespace Nonatomic.TimerKit
 		public virtual void Rewind(float seconds)
 		{
 			if (seconds < 0) return;
+			if (_timeSource != null && !_timeSource.CanSetTime) return; // Can't rewind read-only time source
 			
 			TimeRemaining = Math.Min(TimeRemaining + seconds, Duration);
 			OnTick?.Invoke(this);
@@ -196,7 +237,7 @@ namespace Nonatomic.TimerKit
 			var state = new TimerState
 			{
 				Duration = Duration,
-				TimeRemaining = TimeRemaining,
+				TimeRemaining = _timeSource != null ? _timeSource.GetTimeRemaining() : _internalTimeRemaining,
 				IsRunning = IsRunning
 			};
 			
@@ -213,7 +254,14 @@ namespace Nonatomic.TimerKit
 			if (state == null) throw new InvalidOperationException("Failed to deserialize timer state.");
 
 			Duration = state.Duration;
-			TimeRemaining = state.TimeRemaining;
+			if (_timeSource != null && _timeSource.CanSetTime)
+			{
+				_timeSource.SetTimeRemaining(state.TimeRemaining);
+			}
+			else if (_timeSource == null)
+			{
+				_internalTimeRemaining = state.TimeRemaining;
+			}
 			_isRunning = state.IsRunning;
 
 			if (_isRunning && TimeRemaining <= 0)
