@@ -55,6 +55,7 @@ namespace Nonatomic.TimerKit
 		[SerializeField] private bool _runOnStart = false;
 
 		private StandardTimer _timer;
+		private ITimeSource _timeSource;
 
 		/// <summary>
 		/// Gets the time as either TimeRemaining, TimeElapsed, ProgressElapsed, ProgressRemaining
@@ -67,7 +68,7 @@ namespace Nonatomic.TimerKit
 		public virtual void StartTimer() => _timer.StartTimer();
 		
 		/// <summary>
-		///Resumes the timer without resetting.
+		/// Resumes the timer without resetting.
 		/// </summary>
 		public virtual void ResumeTimer() => _timer.ResumeTimer();
 
@@ -127,7 +128,38 @@ namespace Nonatomic.TimerKit
 
 		protected virtual void Awake()
 		{
-			_timer = new StandardTimer(_duration);
+			_timer = new StandardTimer(_duration, _timeSource);
+		}
+		
+		/// <summary>
+		/// Sets a custom time source for the timer.
+		/// Must be called before Awake or recreate the timer after setting.
+		/// </summary>
+		/// <param name="timeSource">The time source to use.</param>
+		public void SetTimeSource(ITimeSource timeSource)
+		{
+			_timeSource = timeSource;
+			if (_timer != null)
+			{
+				// Recreate timer with new time source
+				var currentDuration = _timer.Duration;
+				var wasRunning = _timer.IsRunning;
+				
+				// Unsubscribe from old timer
+				OnDisable();
+				
+				// Create new timer with the time source
+				// Use preserveTimeSourceValue = true to keep the time source's existing value
+				_timer = new StandardTimer(currentDuration, timeSource, preserveTimeSourceValue: true);
+				
+				// Resubscribe to new timer
+				OnEnable();
+				
+				if (wasRunning)
+				{
+					_timer.ResumeTimer();
+				}
+			}
 		}
 		
 		protected virtual void OnEnable()

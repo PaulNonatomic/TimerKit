@@ -35,7 +35,7 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 
 		protected override void OnDestroy()
 		{
-			if (Registered && Timer != null)
+			if (IsServiceReady && Timer != null)
 			{
 				Timer.OnStart -= _onStartHandler;
 				Timer.OnResume -= _onResumeHandler;
