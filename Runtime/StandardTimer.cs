@@ -13,7 +13,10 @@ namespace Nonatomic.TimerKit
 		/// Initializes a new instance of the StandardTimer class with a specified duration.
 		/// </summary>
 		/// <param name="duration">The total time in seconds that the timer will run.</param>
-		public StandardTimer(float duration) : base(duration)
+		/// <param name="timeSource">Optional custom time source. If null, uses internal time management.</param>
+		/// <param name="preserveTimeSourceValue">If true and timeSource is provided, preserves the time source's current value.</param>
+		public StandardTimer(float duration, ITimeSource timeSource = null, bool preserveTimeSourceValue = false) 
+			: base(duration, timeSource, preserveTimeSourceValue)
 		{
 		}
 

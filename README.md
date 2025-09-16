@@ -249,6 +249,63 @@ public class AbilityCooldown : MonoBehaviour
 }
 ```
 
+### Custom Time Sources
+
+TimerKit supports external time synchronization through the `ITimeSource` interface. This allows you to sync timers with external systems like network time, game sessions, or custom time managers:
+
+```csharp
+// Create a custom time source
+public class GameSessionTimeSource : MonoBehaviour, ITimeSource
+{
+    private float _sessionTimeRemaining = 300f; // 5 minutes
+    
+    public float GetTimeRemaining() => _sessionTimeRemaining;
+    public void SetTimeRemaining(float timeRemaining) => _sessionTimeRemaining = timeRemaining;
+    public bool CanSetTime => true; // Allow timer to modify time
+    
+    void Update()
+    {
+        // Update session time from your game logic
+        _sessionTimeRemaining -= Time.deltaTime;
+    }
+}
+
+// Use custom time source with a timer
+var sessionTimeSource = new GameSessionTimeSource();
+var timer = new StandardTimer(300f, sessionTimeSource);
+timer.StartTimer();
+// Timer now syncs with sessionTimeSource instead of tracking its own time
+```
+
+#### Using TimeSourceProvider Component
+
+For automatic Unity component integration, extend `TimeSourceProvider`:
+
+```csharp
+public class NetworkTimeProvider : TimeSourceProvider
+{
+    private float _networkTime;
+    
+    public override float GetTimeRemaining() => _networkTime;
+    public override void SetTimeRemaining(float timeRemaining) => _networkTime = timeRemaining;
+    public override bool CanSetTime => false; // Read-only from network
+    
+    void Start()
+    {
+        // Fetch network time
+        StartCoroutine(SyncWithServer());
+    }
+    
+    IEnumerator SyncWithServer()
+    {
+        // Your network sync logic here
+        yield return null;
+    }
+}
+```
+
+Attach the `NetworkTimeProvider` component to the same GameObject as a `Timer` component, and they will automatically connect.
+
 ### Service Locator Integration
 
 When the `SERVICE_LOCATOR` preprocessor directive is defined, you can use dependency injection:
