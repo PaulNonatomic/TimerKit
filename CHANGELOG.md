@@ -1,4 +1,13 @@
 # Change Log
+## [0.5.1] - 2025-01-16
+### Changed
+- **TimeSourceProvider** now works with any component implementing `ITimer` interface, not just the concrete `Timer` MonoBehaviour
+- Removed `RequireComponent(typeof(Timer))` attribute from TimeSourceProvider for greater flexibility
+- TimeSourceProvider now gracefully handles ITimer implementations that don't support SetTimeSource
+
+### Fixed
+- TimeSourceExamples.cs removed from package as it was project-specific
+
 ## [0.5.0] - 2025-01-16
 ### Added
 - **ITimeSource Interface**: New interface for external time synchronization, allowing timers to use custom time sources

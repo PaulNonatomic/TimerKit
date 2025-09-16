@@ -218,20 +218,18 @@ namespace Tests.EditMode
 		}
 		
 		[Test]
-		public void TimeSourceProvider_RequiresTimerComponent()
+		public void TimeSourceProvider_ConnectsToITimerComponent()
 		{
-			// The RequireComponent attribute ensures Timer is always present
-			// So we'll test that the component setup works correctly
+			// TimeSourceProvider now works with any ITimer implementation
 			var testObject = new GameObject("TestWithTimer");
 			
 			try
 			{
-				// Adding provider should automatically add Timer due to RequireComponent
-				var provider = testObject.AddComponent<MockTimeSourceProvider>();
+				// Add Timer component first (no longer auto-added by RequireComponent)
+				var timer = testObject.AddComponent<Timer>();
 				
-				// Verify Timer was automatically added
-				var timer = testObject.GetComponent<Timer>();
-				Assert.IsNotNull(timer, "Timer should be automatically added by RequireComponent");
+				// Add the provider
+				var provider = testObject.AddComponent<MockTimeSourceProvider>();
 				
 				// Set a test value before awakening
 				provider.SetTestTime(7f);
@@ -247,6 +245,27 @@ namespace Tests.EditMode
 				// Verify the timer uses the provider's value
 				Assert.AreEqual(7f, timer.TimeRemaining, 
 					"Timer should be connected to TimeSourceProvider and preserve its value");
+			}
+			finally
+			{
+				UnityEngine.Object.DestroyImmediate(testObject);
+			}
+		}
+		
+		[Test]
+		public void TimeSourceProvider_HandlesNoITimerGracefully()
+		{
+			// Test that TimeSourceProvider logs error when no ITimer is present
+			var testObject = new GameObject("TestNoTimer");
+			
+			try
+			{
+				// Add provider without any Timer component
+				var provider = testObject.AddComponent<MockTimeSourceProvider>();
+				
+				// Should log error but not throw exception
+				LogAssert.Expect(LogType.Error, "TimeSourceProvider requires a component implementing ITimer on the same GameObject");
+				provider.TestAwake();
 			}
 			finally
 			{

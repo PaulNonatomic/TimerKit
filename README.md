@@ -304,7 +304,7 @@ public class NetworkTimeProvider : TimeSourceProvider
 }
 ```
 
-Attach the `NetworkTimeProvider` component to the same GameObject as a `Timer` component, and they will automatically connect.
+Attach the `NetworkTimeProvider` component to the same GameObject as any component implementing `ITimer`, and they will automatically connect. The TimeSourceProvider works with any `ITimer` implementation, not just the concrete `Timer` MonoBehaviour.
 
 ### Service Locator Integration
 
