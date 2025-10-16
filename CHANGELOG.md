@@ -1,4 +1,20 @@
 # Change Log
+## [0.6.1] - 2025-01-16
+### Added
+- Added tests verifying callback time override works through base class and interface references
+- Added tests for all overridden time properties (TimeRemaining, TimeElapsed, ProgressElapsed, ProgressRemaining)
+- Added test verifying callback override is properly restored after callback execution
+
+## [0.6.0] - 2025-01-16
+### Changed
+- **BREAKING**: Made TimeRemaining, TimeElapsed, ProgressElapsed, and ProgressRemaining properties virtual in BasicTimer
+- Changed MilestoneTimer property hiding (`new`) to proper polymorphic override (`override`)
+- This fixes an issue where callback time overrides weren't working through service wrapper chains
+
+### Fixed
+- Range milestone callbacks now correctly report interval values when accessed through ITimer interface or service wrappers
+- VoiceOverCountdownService and similar implementations now receive correct TimeRemaining values in callbacks
+
 ## [0.5.2] - 2025-01-16
 ### Fixed
 - Range milestones now trigger at correct interval values when crossing multiple intervals in a single Update
@@ -8,7 +24,8 @@
 
 ## [0.5.1] - 2025-01-16
 ### Changed
-- **TimeSourceProvider** now works with any component implementing `ITimer` interface, not just the concrete `Timer` MonoBehaviour
+- **TimeSourceProvider** now works with any component implementiAdd tests 
+- ng `ITimer` interface, not just the concrete `Timer` MonoBehaviour
 - Removed `RequireComponent(typeof(Timer))` attribute from TimeSourceProvider for greater flexibility
 - TimeSourceProvider now gracefully handles ITimer implementations that don't support SetTimeSource
 

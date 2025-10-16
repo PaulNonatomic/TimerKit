@@ -19,22 +19,22 @@ namespace Nonatomic.TimerKit
 		/// Gets the time remaining. During callback execution, returns the interval value that triggered the callback.
 		/// Otherwise, returns the current timer's time remaining.
 		/// </summary>
-		public new float TimeRemaining => _callbackTimeOverride ?? base.TimeRemaining;
+		public override float TimeRemaining => _callbackTimeOverride ?? base.TimeRemaining;
 
 		/// <summary>
 		/// Gets the time elapsed. During callback execution, calculated from the overridden TimeRemaining.
 		/// </summary>
-		public new float TimeElapsed => Duration - TimeRemaining;
+		public override float TimeElapsed => Duration - TimeRemaining;
 
 		/// <summary>
 		/// Gets the progress elapsed as a value between 0 and 1.
 		/// </summary>
-		public new float ProgressElapsed => TimeElapsed / Duration;
+		public override float ProgressElapsed => TimeElapsed / Duration;
 
 		/// <summary>
 		/// Gets the progress remaining as a value between 0 and 1.
 		/// </summary>
-		public new float ProgressRemaining => 1 - ProgressElapsed;
+		public override float ProgressRemaining => 1 - ProgressElapsed;
 
 		/// <summary>
 		/// Initializes a new instance of the MilestoneTimer class with a specified duration.

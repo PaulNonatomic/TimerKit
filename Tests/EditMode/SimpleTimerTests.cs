@@ -974,6 +974,172 @@ namespace Tests.EditMode
 			Assert.That(triggerTimes[3], Is.EqualTo(1.5f).Within(0.01f), "Fourth trigger at 1.5");
 			Assert.That(triggerTimes[4], Is.EqualTo(0.0f).Within(0.01f), "Fifth trigger at 0.0");
 		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_CallbackOverride_WorksThroughBaseClassReference()
+		{
+			var triggerTimes = new List<float>();
+
+			// Access the timer through a base class reference (MilestoneTimer -> StandardTimer)
+			MilestoneTimer milestoneTimer = _timer;
+
+			// Add a range milestone and verify TimeRemaining is overridden during callback
+			milestoneTimer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f,
+				1f,
+				1f,
+				() => {
+					// When accessed through base class reference, the overridden TimeRemaining should still work
+					triggerTimes.Add(milestoneTimer.TimeRemaining);
+					Debug.Log($"Triggered through MilestoneTimer reference: {milestoneTimer.TimeRemaining}");
+				}
+			);
+
+			milestoneTimer.StartTimer();
+			milestoneTimer.Update(9.5f); // Cross all intervals
+
+			// Should have triggered at 5, 4, 3, 2, 1
+			Assert.AreEqual(5, triggerTimes.Count, "Should trigger 5 times");
+			Assert.That(triggerTimes[0], Is.EqualTo(5.0f).Within(0.01f), "First trigger should report 5.0");
+			Assert.That(triggerTimes[1], Is.EqualTo(4.0f).Within(0.01f), "Second trigger should report 4.0");
+			Assert.That(triggerTimes[2], Is.EqualTo(3.0f).Within(0.01f), "Third trigger should report 3.0");
+			Assert.That(triggerTimes[3], Is.EqualTo(2.0f).Within(0.01f), "Fourth trigger should report 2.0");
+			Assert.That(triggerTimes[4], Is.EqualTo(1.0f).Within(0.01f), "Fifth trigger should report 1.0");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_CallbackOverride_WorksThroughInterfaceReference()
+		{
+			var triggerTimes = new List<float>();
+
+			// Access the timer through an interface reference
+			ITimer timerInterface = _timer;
+
+			// Add a range milestone and verify TimeRemaining is overridden during callback
+			timerInterface.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f,
+				1f,
+				1f,
+				() => {
+					// When accessed through interface, the overridden TimeRemaining should still work
+					triggerTimes.Add(timerInterface.TimeRemaining);
+					Debug.Log($"Triggered through ITimer reference: {timerInterface.TimeRemaining}");
+				}
+			);
+
+			timerInterface.StartTimer();
+			_timer.Update(9.5f); // Update through concrete reference since ITimer doesn't have Update
+
+			// Should have triggered at 5, 4, 3, 2, 1
+			Assert.AreEqual(5, triggerTimes.Count, "Should trigger 5 times");
+			Assert.That(triggerTimes[0], Is.EqualTo(5.0f).Within(0.01f), "First trigger should report 5.0");
+			Assert.That(triggerTimes[1], Is.EqualTo(4.0f).Within(0.01f), "Second trigger should report 4.0");
+			Assert.That(triggerTimes[2], Is.EqualTo(3.0f).Within(0.01f), "Third trigger should report 3.0");
+			Assert.That(triggerTimes[3], Is.EqualTo(2.0f).Within(0.01f), "Fourth trigger should report 2.0");
+			Assert.That(triggerTimes[4], Is.EqualTo(1.0f).Within(0.01f), "Fifth trigger should report 1.0");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_CallbackOverride_AllTimePropertiesWork()
+		{
+			var timeRemainingValues = new List<float>();
+			var timeElapsedValues = new List<float>();
+			var progressElapsedValues = new List<float>();
+			var progressRemainingValues = new List<float>();
+
+			// Test that all overridden time properties work correctly during callbacks
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f,
+				1f,
+				1f,
+				() => {
+					timeRemainingValues.Add(_timer.TimeRemaining);
+					timeElapsedValues.Add(_timer.TimeElapsed);
+					progressElapsedValues.Add(_timer.ProgressElapsed);
+					progressRemainingValues.Add(_timer.ProgressRemaining);
+					Debug.Log($"TR:{_timer.TimeRemaining} TE:{_timer.TimeElapsed} PE:{_timer.ProgressElapsed} PR:{_timer.ProgressRemaining}");
+				}
+			);
+
+			_timer.StartTimer();
+			_timer.Update(9.5f); // Cross all intervals
+
+			// Should have triggered 5 times
+			Assert.AreEqual(5, timeRemainingValues.Count, "Should trigger 5 times");
+
+			// Verify TimeRemaining values
+			Assert.That(timeRemainingValues[0], Is.EqualTo(5.0f).Within(0.01f));
+			Assert.That(timeRemainingValues[1], Is.EqualTo(4.0f).Within(0.01f));
+			Assert.That(timeRemainingValues[2], Is.EqualTo(3.0f).Within(0.01f));
+			Assert.That(timeRemainingValues[3], Is.EqualTo(2.0f).Within(0.01f));
+			Assert.That(timeRemainingValues[4], Is.EqualTo(1.0f).Within(0.01f));
+
+			// Verify TimeElapsed = Duration - TimeRemaining
+			Assert.That(timeElapsedValues[0], Is.EqualTo(5.0f).Within(0.01f), "At 5s remaining, elapsed should be 5s");
+			Assert.That(timeElapsedValues[1], Is.EqualTo(6.0f).Within(0.01f), "At 4s remaining, elapsed should be 6s");
+			Assert.That(timeElapsedValues[2], Is.EqualTo(7.0f).Within(0.01f), "At 3s remaining, elapsed should be 7s");
+			Assert.That(timeElapsedValues[3], Is.EqualTo(8.0f).Within(0.01f), "At 2s remaining, elapsed should be 8s");
+			Assert.That(timeElapsedValues[4], Is.EqualTo(9.0f).Within(0.01f), "At 1s remaining, elapsed should be 9s");
+
+			// Verify ProgressElapsed = TimeElapsed / Duration
+			Assert.That(progressElapsedValues[0], Is.EqualTo(0.5f).Within(0.01f), "At 5s elapsed, progress should be 50%");
+			Assert.That(progressElapsedValues[1], Is.EqualTo(0.6f).Within(0.01f), "At 6s elapsed, progress should be 60%");
+			Assert.That(progressElapsedValues[2], Is.EqualTo(0.7f).Within(0.01f), "At 7s elapsed, progress should be 70%");
+			Assert.That(progressElapsedValues[3], Is.EqualTo(0.8f).Within(0.01f), "At 8s elapsed, progress should be 80%");
+			Assert.That(progressElapsedValues[4], Is.EqualTo(0.9f).Within(0.01f), "At 9s elapsed, progress should be 90%");
+
+			// Verify ProgressRemaining = 1 - ProgressElapsed
+			Assert.That(progressRemainingValues[0], Is.EqualTo(0.5f).Within(0.01f));
+			Assert.That(progressRemainingValues[1], Is.EqualTo(0.4f).Within(0.01f));
+			Assert.That(progressRemainingValues[2], Is.EqualTo(0.3f).Within(0.01f));
+			Assert.That(progressRemainingValues[3], Is.EqualTo(0.2f).Within(0.01f));
+			Assert.That(progressRemainingValues[4], Is.EqualTo(0.1f).Within(0.01f));
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_CallbackOverride_RestoredAfterCallback()
+		{
+			float timeRemainingDuringCallback = 0;
+			float timeRemainingAfterCallback = 0;
+
+			// Add a milestone that captures TimeRemaining during callback
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f,
+				5f, // Only trigger once
+				1f,
+				() => {
+					timeRemainingDuringCallback = _timer.TimeRemaining;
+					Debug.Log($"During callback: {_timer.TimeRemaining}");
+				}
+			);
+
+			_timer.StartTimer();
+			_timer.Update(5.0f); // Trigger at 5s remaining
+
+			// Capture TimeRemaining after callback completes
+			timeRemainingAfterCallback = _timer.TimeRemaining;
+			Debug.Log($"After callback: {timeRemainingAfterCallback}");
+
+			// During callback, should report the interval value (5.0)
+			Assert.That(timeRemainingDuringCallback, Is.EqualTo(5.0f).Within(0.01f),
+				"During callback, TimeRemaining should be the interval value");
+
+			// After callback, should report the actual current time remaining (5.0)
+			Assert.That(timeRemainingAfterCallback, Is.EqualTo(5.0f).Within(0.01f),
+				"After callback, TimeRemaining should be restored to actual value");
+
+			// Continue updating
+			_timer.Update(2.0f); // Now at 3.0s remaining
+			float currentTime = _timer.TimeRemaining;
+
+			// Should now report 3.0
+			Assert.That(currentTime, Is.EqualTo(3.0f).Within(0.01f),
+				"After more updates, TimeRemaining should reflect actual value");
+		}
 	}
 	
 	/// <summary>

@@ -28,7 +28,7 @@ namespace Nonatomic.TimerKit
 			}
 		}
 		
-		public float TimeRemaining 
+		public virtual float TimeRemaining 
 		{ 
 			get => _timeSource?.GetTimeRemaining() ?? _internalTimeRemaining;
 			
@@ -44,9 +44,9 @@ namespace Nonatomic.TimerKit
 				}
 			}
 		}
-		public float TimeElapsed => Duration - TimeRemaining;
-		public float ProgressElapsed => TimeElapsed / Duration;
-		public float ProgressRemaining => 1 - ProgressElapsed;
+		public virtual float TimeElapsed => Duration - TimeRemaining;
+		public virtual float ProgressElapsed => TimeElapsed / Duration;
+		public virtual float ProgressRemaining => 1 - ProgressElapsed;
 		public bool IsRunning { get; private set; }
 
 		private float _duration;
