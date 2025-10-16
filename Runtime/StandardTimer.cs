@@ -18,6 +18,7 @@ namespace Nonatomic.TimerKit
 		public StandardTimer(float duration, ITimeSource timeSource = null, bool preserveTimeSourceValue = false) 
 			: base(duration, timeSource, preserveTimeSourceValue)
 		{
+			//...
 		}
 
 		/// <summary>

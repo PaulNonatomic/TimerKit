@@ -101,9 +101,9 @@ namespace Nonatomic.TimerKit
 		{
 			if (LastTriggeredValue == null) return true;
 			
-			if (IsCountdownType()) return HasMoreCountdownIntervals();
-			
-			return HasMoreCountUpIntervals();
+			return IsCountdownType() 
+				? HasMoreCountdownIntervals() 
+				: HasMoreCountUpIntervals();
 		}
 		
 		private bool HasMoreCountdownIntervals()
@@ -113,7 +113,7 @@ namespace Nonatomic.TimerKit
 		
 		private bool HasMoreCountUpIntervals()
 		{
-			return LastTriggeredValue.Value + Interval <= RangeEnd;
+			return LastTriggeredValue != null && LastTriggeredValue.Value + Interval <= RangeEnd;
 		}
 		
 		/// <summary>

@@ -31,9 +31,10 @@ namespace Nonatomic.TimerKit
 		public float TimeRemaining 
 		{ 
 			get => _timeSource?.GetTimeRemaining() ?? _internalTimeRemaining;
+			
 			private set
 			{
-				if (_timeSource != null && _timeSource.CanSetTime)
+				if (_timeSource is { CanSetTime: true })
 				{
 					_timeSource.SetTimeRemaining(value);
 				}
@@ -46,10 +47,9 @@ namespace Nonatomic.TimerKit
 		public float TimeElapsed => Duration - TimeRemaining;
 		public float ProgressElapsed => TimeElapsed / Duration;
 		public float ProgressRemaining => 1 - ProgressElapsed;
-		public bool IsRunning => _isRunning;
-		
+		public bool IsRunning { get; private set; }
+
 		private float _duration;
-		private bool _isRunning;
 		private float _internalTimeRemaining;
 		private ITimeSource _timeSource;
 
@@ -66,7 +66,7 @@ namespace Nonatomic.TimerKit
 			
 			if (preserveTimeSourceValue && timeSource != null)
 			{
-				_isRunning = false;
+				IsRunning = false;
 			}
 			else
 			{
@@ -98,7 +98,8 @@ namespace Nonatomic.TimerKit
 			{
 				TimeRemaining = Duration;
 			}
-			_isRunning = true;
+			
+			IsRunning = true;
 			OnStart?.Invoke();
 		}
 		
@@ -109,7 +110,7 @@ namespace Nonatomic.TimerKit
 		{
 			if (TimeRemaining <= 0) return;
 
-			_isRunning = true;
+			IsRunning = true;
 			OnResume?.Invoke();
 		}
 
@@ -119,7 +120,7 @@ namespace Nonatomic.TimerKit
 		/// <param name="deltaTime">The time in seconds to update the timer.</param>
 		public virtual void Update(float deltaTime)
 		{
-			if (!_isRunning) return;
+			if (!IsRunning) return;
 
 			var originalTimeRemaining = TimeRemaining;
 			
@@ -147,6 +148,7 @@ namespace Nonatomic.TimerKit
 		/// </summary>
 		protected virtual void OnTimerUpdated()
 		{
+			//...
 		}
 		
 		private bool HasCompleted(float originalTimeRemaining)
@@ -156,7 +158,7 @@ namespace Nonatomic.TimerKit
 		
 		private void HandleCompletion()
 		{
-			_isRunning = false;
+			IsRunning = false;
 			TimeRemaining = 0;
 			OnComplete?.Invoke();
 		}
@@ -166,7 +168,7 @@ namespace Nonatomic.TimerKit
 		/// </summary>
 		public virtual void StopTimer()
 		{
-			_isRunning = false;
+			IsRunning = false;
 			OnStop?.Invoke();
 		}
 
@@ -179,7 +181,8 @@ namespace Nonatomic.TimerKit
 			{
 				TimeRemaining = Duration;
 			}
-			_isRunning = false;
+			
+			IsRunning = false;
 			OnTimerReset();
 		}
 		
@@ -189,6 +192,7 @@ namespace Nonatomic.TimerKit
 		/// </summary>
 		protected virtual void OnTimerReset()
 		{
+			//...
 		}
 		
 		/// <summary>
@@ -262,9 +266,9 @@ namespace Nonatomic.TimerKit
 			{
 				_internalTimeRemaining = state.TimeRemaining;
 			}
-			_isRunning = state.IsRunning;
+			IsRunning = state.IsRunning;
 
-			if (_isRunning && TimeRemaining <= 0)
+			if (IsRunning && TimeRemaining <= 0)
 			{
 				StopTimer();
 			}

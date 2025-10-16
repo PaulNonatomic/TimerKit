@@ -18,6 +18,7 @@ namespace Nonatomic.TimerKit
 		/// <param name="duration">The total time in seconds that the timer will run.</param>
 		public SimpleTimer(float duration) : base(duration)
 		{
+			//...
 		}
 	}
 }

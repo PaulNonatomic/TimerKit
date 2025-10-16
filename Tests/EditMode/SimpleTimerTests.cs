@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 using Nonatomic.TimerKit;
 
 namespace Tests.EditMode
@@ -487,47 +488,491 @@ namespace Tests.EditMode
 		{
 			int everySecondCount = 0;
 			int everyTwoSecondsCount = 0;
-			
+
 			// Add milestone for every second in last 5 seconds
 			_timer.AddRangeMilestone(
 				TimeType.TimeRemaining,
 				5, 0, 1,
 				() => everySecondCount++
 			);
-			
+
 			// Add milestone for every 2 seconds in last 6 seconds
 			_timer.AddRangeMilestone(
 				TimeType.TimeRemaining,
 				6, 0, 2,
 				() => everyTwoSecondsCount++
 			);
-			
+
 			_timer.StartTimer();
-			
+
 			// Update to 6 seconds remaining
 			_timer.Update(4);
 			Assert.AreEqual(0, everySecondCount, "First milestone not triggered yet");
 			Assert.AreEqual(1, everyTwoSecondsCount, "Second milestone triggered once");
-			
+
 			// Update to 5 seconds remaining
 			_timer.Update(1);
 			Assert.AreEqual(1, everySecondCount, "First milestone triggered once");
 			Assert.AreEqual(1, everyTwoSecondsCount, "Second milestone still once");
-			
+
 			// Update to 4 seconds remaining
 			_timer.Update(1);
 			Assert.AreEqual(2, everySecondCount, "First milestone triggered twice");
 			Assert.AreEqual(2, everyTwoSecondsCount, "Second milestone triggered twice");
-			
+
 			// Update to 2 seconds remaining
 			_timer.Update(2);
 			Assert.AreEqual(4, everySecondCount, "First milestone triggered 4 times");
 			Assert.AreEqual(3, everyTwoSecondsCount, "Second milestone triggered 3 times");
-			
+
 			// Update to 0 seconds remaining
 			_timer.Update(2);
 			Assert.AreEqual(6, everySecondCount, "First milestone triggered 6 times total");
 			Assert.AreEqual(4, everyTwoSecondsCount, "Second milestone triggered 4 times total");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_DoesNotFireOutsideRange_AboveRange()
+		{
+			var triggerTimes = new List<float>();
+
+			// Add a range milestone for 5 to 1 seconds remaining
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5, // rangeStart
+				1, // rangeEnd
+				1, // interval
+				() => {
+					triggerTimes.Add(_timer.TimeRemaining);
+					Debug.Log($"Triggered at {_timer.TimeRemaining} seconds remaining");
+				}
+			);
+
+			_timer.StartTimer();
+
+			// Update to 10 seconds remaining (still at start) - should not trigger
+			Assert.AreEqual(0, triggerTimes.Count, "Should not trigger before reaching range start");
+
+			// Update to 6 seconds remaining - should not trigger (outside range)
+			_timer.Update(4);
+			Assert.AreEqual(0, triggerTimes.Count, "Should not trigger at 6 seconds (above range)");
+
+			// Update to 5 seconds remaining - should trigger (at range start)
+			_timer.Update(1);
+			Assert.AreEqual(1, triggerTimes.Count, "Should trigger at 5 seconds (range start)");
+			Assert.AreEqual(5f, triggerTimes[0], 0.01f);
+
+			// Continue through range
+			_timer.Update(1); // 4 seconds
+			_timer.Update(1); // 3 seconds
+			_timer.Update(1); // 2 seconds
+			_timer.Update(1); // 1 second
+
+			Assert.AreEqual(5, triggerTimes.Count, "Should have triggered 5 times total (5, 4, 3, 2, 1)");
+
+			// Update to 0 seconds - should not trigger (below range end of 1)
+			_timer.Update(1);
+			Assert.AreEqual(5, triggerTimes.Count, "Should not trigger at 0 seconds (below range end)");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_OnlyFiresWithinSpecifiedRange()
+		{
+			var triggerTimes = new List<float>();
+			int triggerCount = 0;
+
+			// Simulate the VoiceOverCountdownService scenario: range 5 to 1, interval 1
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f, // rangeStart
+				1f, // rangeEnd
+				1f, // interval
+				() => {
+					triggerCount++;
+					var timeRemaining = _timer.TimeRemaining;
+					triggerTimes.Add(timeRemaining);
+					Debug.Log($"Milestone triggered at {timeRemaining} seconds remaining (trigger #{triggerCount})");
+
+					// This is the check from VoiceOverCountdownService
+					if (timeRemaining < 1 || timeRemaining > 5)
+					{
+						Assert.Fail($"Milestone fired outside intended range at {timeRemaining} seconds");
+					}
+				}
+			);
+
+			_timer.StartTimer();
+
+			// Simulate updates through the entire timer duration
+			for (float time = 10f; time > 0; time -= 0.5f)
+			{
+				_timer.Update(0.5f);
+				Debug.Log($"Timer updated: {_timer.TimeRemaining} seconds remaining, triggers so far: {triggerCount}");
+			}
+
+			// Should have triggered exactly at 5, 4, 3, 2, 1
+			Assert.AreEqual(5, triggerCount, "Should trigger exactly 5 times (at 5, 4, 3, 2, 1 seconds)");
+			Assert.AreEqual(5, triggerTimes.Count, "Should have recorded 5 trigger times");
+
+			// Verify all trigger times are within range
+			foreach (var triggerTime in triggerTimes)
+			{
+				Assert.GreaterOrEqual(triggerTime, 1f, $"Trigger at {triggerTime} should be >= 1 second");
+				Assert.LessOrEqual(triggerTime, 5f, $"Trigger at {triggerTime} should be <= 5 seconds");
+			}
+
+			// Verify exact trigger points
+			Assert.Contains(5f, triggerTimes.Select(t => Mathf.Round(t * 100) / 100).ToList(), "Should trigger at 5 seconds");
+			Assert.Contains(4f, triggerTimes.Select(t => Mathf.Round(t * 100) / 100).ToList(), "Should trigger at 4 seconds");
+			Assert.Contains(3f, triggerTimes.Select(t => Mathf.Round(t * 100) / 100).ToList(), "Should trigger at 3 seconds");
+			Assert.Contains(2f, triggerTimes.Select(t => Mathf.Round(t * 100) / 100).ToList(), "Should trigger at 2 seconds");
+			Assert.Contains(1f, triggerTimes.Select(t => Mathf.Round(t * 100) / 100).ToList(), "Should trigger at 1 second");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_TriggersAtEachInterval_WhenSkippingMultipleIntervals()
+		{
+			var triggerTimes = new List<float>();
+
+			// Range from 5 to 1, interval 1
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f,
+				1f,
+				1f,
+				() => triggerTimes.Add(_timer.TimeRemaining)
+			);
+
+			_timer.StartTimer();
+
+			// Make a large jump from 10 seconds to 0.5 seconds (crossing the entire range)
+			_timer.Update(9.5f);
+
+			// Should have triggered at 5, 4, 3, 2, 1 (but not at 0.5)
+			Assert.AreEqual(5, triggerTimes.Count, "Should trigger at all intervals within range");
+
+			// The triggers should be in descending order since we're using TimeRemaining
+			Assert.That(triggerTimes[0], Is.EqualTo(5f).Within(0.01f));
+			Assert.That(triggerTimes[1], Is.EqualTo(4f).Within(0.01f));
+			Assert.That(triggerTimes[2], Is.EqualTo(3f).Within(0.01f));
+			Assert.That(triggerTimes[3], Is.EqualTo(2f).Within(0.01f));
+			Assert.That(triggerTimes[4], Is.EqualTo(1f).Within(0.01f));
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_DoesNotTrigger_WhenTimerNeverEntersRange()
+		{
+			int triggerCount = 0;
+
+			// Create a 3-second timer with range 5 to 1
+			var shortTimer = new StandardTimer(3f);
+
+			shortTimer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f, // rangeStart (timer never reaches 5 seconds remaining)
+				1f, // rangeEnd
+				1f, // interval
+				() => triggerCount++
+			);
+
+			shortTimer.StartTimer();
+
+			// Complete the entire timer
+			shortTimer.Update(3f);
+
+			// Should never trigger because timer duration (3s) is less than range start (5s)
+			Assert.AreEqual(0, triggerCount, "Should not trigger when timer never enters the range");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_MissedTrigger_BugReproduction()
+		{
+			var triggerTimes = new List<float>();
+			int triggerCount = 0;
+
+			// This test specifically tries to reproduce the bug where milestones
+			// might not fire within the intended range
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f,
+				1f,
+				1f,
+				() => {
+					triggerCount++;
+					triggerTimes.Add(_timer.TimeRemaining);
+					Debug.Log($"Trigger #{triggerCount} at {_timer.TimeRemaining}s remaining");
+				}
+			);
+
+			_timer.StartTimer();
+
+			// Update in small increments to ensure we don't skip any intervals
+			_timer.Update(4.5f); // 5.5 seconds remaining - no trigger yet
+			Assert.AreEqual(0, triggerCount, "No trigger yet at 5.5s");
+
+			_timer.Update(0.6f); // 4.9 seconds remaining - should have triggered at 5
+			Assert.AreEqual(1, triggerCount, "Should have triggered at 5 seconds");
+
+			_timer.Update(0.95f); // 3.95 seconds remaining - should have triggered at 4
+			Assert.AreEqual(2, triggerCount, "Should have triggered at 4 seconds");
+
+			_timer.Update(1.0f); // 2.95 seconds remaining - should have triggered at 3
+			Assert.AreEqual(3, triggerCount, "Should have triggered at 3 seconds");
+
+			_timer.Update(1.0f); // 1.95 seconds remaining - should have triggered at 2
+			Assert.AreEqual(4, triggerCount, "Should have triggered at 2 seconds");
+
+			_timer.Update(0.96f); // 0.99 seconds remaining - should have triggered at 1
+			Assert.AreEqual(5, triggerCount, "Should have triggered at 1 second");
+
+			_timer.Update(1.0f); // 0 seconds or complete - no more triggers
+			Assert.AreEqual(5, triggerCount, "No more triggers after range end");
+
+			// Verify all triggers were within range [1, 5]
+			foreach (var time in triggerTimes)
+			{
+				Assert.GreaterOrEqual(time, 1f, $"Trigger at {time}s should be >= 1");
+				Assert.LessOrEqual(time, 5f, $"Trigger at {time}s should be <= 5");
+			}
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_FiresExactlyAtBoundaries()
+		{
+			var triggerTimes = new List<float>();
+
+			// Range exactly from 5.0 to 1.0 with 1.0 interval
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5.0f,
+				1.0f,
+				1.0f,
+				() => triggerTimes.Add(_timer.TimeRemaining)
+			);
+
+			_timer.StartTimer();
+
+			// Reach exactly 5.0
+			_timer.Update(5.0f);
+			Assert.AreEqual(1, triggerTimes.Count, "Should trigger at exactly 5.0");
+			Assert.That(triggerTimes[0], Is.EqualTo(5.0f).Within(0.001f));
+
+			// Reach exactly 4.0
+			_timer.Update(1.0f);
+			Assert.AreEqual(2, triggerTimes.Count, "Should trigger at exactly 4.0");
+			Assert.That(triggerTimes[1], Is.EqualTo(4.0f).Within(0.001f));
+
+			// Reach exactly 3.0
+			_timer.Update(1.0f);
+			Assert.AreEqual(3, triggerTimes.Count, "Should trigger at exactly 3.0");
+			Assert.That(triggerTimes[2], Is.EqualTo(3.0f).Within(0.001f));
+
+			// Reach exactly 2.0
+			_timer.Update(1.0f);
+			Assert.AreEqual(4, triggerTimes.Count, "Should trigger at exactly 2.0");
+			Assert.That(triggerTimes[3], Is.EqualTo(2.0f).Within(0.001f));
+
+			// Reach exactly 1.0 (range end)
+			_timer.Update(1.0f);
+			Assert.AreEqual(5, triggerTimes.Count, "Should trigger at exactly 1.0 (range end inclusive)");
+			Assert.That(triggerTimes[4], Is.EqualTo(1.0f).Within(0.001f));
+
+			// Go to 0.0 - should not trigger anymore
+			_timer.Update(1.0f);
+			Assert.AreEqual(5, triggerTimes.Count, "Should not trigger at 0.0 (below range end)");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_WithFloatingPointImprecision()
+		{
+			var triggerTimes = new List<float>();
+			int triggerCount = 0;
+
+			// Using slightly imprecise values that might accumulate error
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5.0f,
+				1.0f,
+				1.0f,
+				() => {
+					triggerCount++;
+					triggerTimes.Add(_timer.TimeRemaining);
+					Debug.Log($"Triggered at {_timer.TimeRemaining:F6}");
+				}
+			);
+
+			_timer.StartTimer();
+
+			// Use Update values that might introduce floating point errors
+			_timer.Update(0.1f);
+			_timer.Update(0.1f);
+			_timer.Update(0.1f); // Should be at ~9.7
+			_timer.Update(0.2f);
+			_timer.Update(0.2f);
+			_timer.Update(0.2f); // Should be at ~9.1
+			_timer.Update(0.7f); // Should be at ~8.4
+			_timer.Update(0.7f); // Should be at ~7.7
+			_timer.Update(0.7f); // Should be at ~7.0
+			_timer.Update(0.7f); // Should be at ~6.3
+			_timer.Update(0.7f); // Should be at ~5.6
+			_timer.Update(0.7f); // Should be at ~4.9 - should have triggered at 5
+
+			Assert.GreaterOrEqual(triggerCount, 1, "Should have triggered at 5 seconds");
+
+			// Continue to end
+			for (int i = 0; i < 10; i++)
+			{
+				_timer.Update(0.5f);
+			}
+
+			Assert.AreEqual(5, triggerCount, "Should trigger exactly 5 times despite floating point imprecision");
+
+			// Verify all are in range
+			foreach (var time in triggerTimes)
+			{
+				Assert.GreaterOrEqual(time, 0.99f, $"Trigger at {time} should be >= 1 (with small tolerance)");
+				Assert.LessOrEqual(time, 5.01f, $"Trigger at {time} should be <= 5 (with small tolerance)");
+			}
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_TriggerOutsideRange_BugScenario()
+		{
+			var allTriggerTimes = new List<(float timeRemaining, string where)>();
+			int outsideRangeTriggers = 0;
+
+			// Add a range milestone for 5 to 1 seconds
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f,
+				1f,
+				1f,
+				() => {
+					var time = _timer.TimeRemaining;
+					allTriggerTimes.Add((time, $"TimeRemaining={time}"));
+					Debug.Log($"Milestone triggered at {time} seconds");
+
+					// Check if outside range - this should NEVER happen
+					if (time < 1f || time > 5f)
+					{
+						outsideRangeTriggers++;
+						Debug.LogError($"BUG: Milestone triggered OUTSIDE range at {time} seconds!");
+					}
+				}
+			);
+
+			_timer.StartTimer();
+
+			// Run through entire timer with various update patterns
+			// Pattern 1: Small steps
+			for (int i = 0; i < 5; i++)
+			{
+				_timer.Update(0.3f);
+			}
+
+			// Pattern 2: Medium steps
+			for (int i = 0; i < 3; i++)
+			{
+				_timer.Update(0.8f);
+			}
+
+			// Pattern 3: Large step
+			_timer.Update(2.0f);
+
+			// Pattern 4: Complete the timer
+			_timer.Update(10f);
+
+			// The main assertion: NO triggers should occur outside the range
+			Assert.AreEqual(0, outsideRangeTriggers,
+				$"Milestones should NEVER trigger outside the range [1, 5]. " +
+				$"Found {outsideRangeTriggers} triggers outside range. " +
+				$"All triggers: {string.Join(", ", allTriggerTimes.Select(t => t.timeRemaining))}");
+
+			// Should have triggered exactly 5 times (at 5, 4, 3, 2, 1)
+			Assert.AreEqual(5, allTriggerTimes.Count,
+				$"Should trigger exactly 5 times. Triggers: {string.Join(", ", allTriggerTimes.Select(t => t.timeRemaining))}");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_EdgeCase_ZeroRemaining()
+		{
+			var triggerTimes = new List<float>();
+
+			// Range from 3 to 0 (inclusive of 0)
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				3f,
+				0f,
+				1f,
+				() => triggerTimes.Add(_timer.TimeRemaining)
+			);
+
+			_timer.StartTimer();
+
+			// Complete the timer
+			_timer.Update(10f);
+
+			// Should trigger at 3, 2, 1, 0
+			Assert.AreEqual(4, triggerTimes.Count, "Should trigger at 3, 2, 1, and 0");
+			Assert.Contains(3f, triggerTimes.Select(t => Mathf.Round(t * 100) / 100).ToList());
+			Assert.Contains(2f, triggerTimes.Select(t => Mathf.Round(t * 100) / 100).ToList());
+			Assert.Contains(1f, triggerTimes.Select(t => Mathf.Round(t * 100) / 100).ToList());
+			Assert.Contains(0f, triggerTimes.Select(t => Mathf.Round(t * 100) / 100).ToList());
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_OnlyRangeEnd()
+		{
+			var triggerTimes = new List<float>();
+
+			// Range where start == end (should trigger exactly once)
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				3f,
+				3f,
+				1f,
+				() => triggerTimes.Add(_timer.TimeRemaining)
+			);
+
+			_timer.StartTimer();
+
+			_timer.Update(7f); // Down to 3 seconds
+
+			Assert.AreEqual(1, triggerTimes.Count, "Should trigger exactly once when start == end");
+			Assert.That(triggerTimes[0], Is.EqualTo(3f).Within(0.01f));
+
+			// Continue to completion
+			_timer.Update(10f);
+			Assert.AreEqual(1, triggerTimes.Count, "Should only trigger once");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_NonIntegerInterval()
+		{
+			var triggerTimes = new List<float>();
+
+			// Range with non-integer interval (1.5 seconds)
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				6f,
+				0f,
+				1.5f,
+				() => triggerTimes.Add(_timer.TimeRemaining)
+			);
+
+			_timer.StartTimer();
+
+			_timer.Update(10f); // Complete the timer
+
+			// Should trigger at 6, 4.5, 3, 1.5, 0
+			Assert.AreEqual(5, triggerTimes.Count, "Should trigger 5 times");
+
+			// Verify approximate values (allowing for floating point)
+			Assert.That(triggerTimes[0], Is.EqualTo(6.0f).Within(0.01f), "First trigger at 6.0");
+			Assert.That(triggerTimes[1], Is.EqualTo(4.5f).Within(0.01f), "Second trigger at 4.5");
+			Assert.That(triggerTimes[2], Is.EqualTo(3.0f).Within(0.01f), "Third trigger at 3.0");
+			Assert.That(triggerTimes[3], Is.EqualTo(1.5f).Within(0.01f), "Fourth trigger at 1.5");
+			Assert.That(triggerTimes[4], Is.EqualTo(0.0f).Within(0.01f), "Fifth trigger at 0.0");
 		}
 	}
 	

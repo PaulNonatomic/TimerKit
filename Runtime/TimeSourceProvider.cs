@@ -54,10 +54,8 @@ namespace Nonatomic.TimerKit
 		protected virtual void OnDestroy()
 		{
 			// Clear the time source when destroyed
-			if (_timerComponent != null)
-			{
-				_timerComponent.SetTimeSource(null);
-			}
+			if (_timerComponent == null) return;
+			_timerComponent.SetTimeSource(null);
 		}
 	}
 }

@@ -154,11 +154,9 @@ namespace Nonatomic.TimerKit
 				
 				// Resubscribe to new timer
 				OnEnable();
-				
-				if (wasRunning)
-				{
-					_timer.ResumeTimer();
-				}
+
+				if (!wasRunning) return;
+				_timer.ResumeTimer();
 			}
 		}
 		

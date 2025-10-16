@@ -1,4 +1,11 @@
 # Change Log
+## [0.5.2] - 2025-01-16
+### Fixed
+- Range milestones now trigger at correct interval values when crossing multiple intervals in a single Update
+- Range milestones no longer trigger outside their defined range boundaries
+- Added callback time override mechanism so callbacks see the interval value that triggered them
+- Added iteration limit safeguard to prevent infinite loops in milestone processing
+
 ## [0.5.1] - 2025-01-16
 ### Changed
 - **TimeSourceProvider** now works with any component implementing `ITimer` interface, not just the concrete `Timer` MonoBehaviour
