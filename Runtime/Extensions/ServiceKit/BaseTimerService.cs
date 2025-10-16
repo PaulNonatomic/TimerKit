@@ -108,9 +108,9 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 			Timer.RemoveMilestonesByCondition(condition);
 		}
 
-		public TimerRangeMilestone AddRangeMilestone(TimeType timeType, float min, float max, float interval, Action action)
+		public TimerRangeMilestone AddRangeMilestone(TimeType timeType, float min, float max, float interval, Action action, bool isRecurring = false)
 		{
-			return Timer.AddRangeMilestone(timeType, min, max, interval, action);
+			return Timer.AddRangeMilestone(timeType, min, max, interval, action, isRecurring);
 		}
 
 		protected override void InitializeService()

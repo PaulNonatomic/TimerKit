@@ -47,8 +47,8 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 		public virtual void FastForward(float seconds) => _timer.FastForward(seconds);
 		public virtual void Rewind(float seconds) => _timer.Rewind(seconds);
 		public virtual void AddMilestone(TimerMilestone milestone) => _timer.AddMilestone(milestone);
-		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback) 
-			=> _timer.AddRangeMilestone(type, rangeStart, rangeEnd, interval, callback);
+		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback, bool isRecurring = false) 
+			=> _timer.AddRangeMilestone(type, rangeStart, rangeEnd, interval, callback, isRecurring);
 		public virtual void RemoveMilestone(TimerMilestone milestone) => _timer.RemoveMilestone(milestone);
 		public virtual void RemoveAllMilestones() => _timer.RemoveAllMilestones();
 		public virtual void RemoveMilestonesByCondition(Predicate<TimerMilestone> condition) => _timer.RemoveMilestonesByCondition(condition);

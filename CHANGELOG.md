@@ -1,4 +1,38 @@
 # Change Log
+## [0.7.2] - 2025-01-16
+### Fixed
+- Recurring milestones triggering multiple times per round due to premature re-addition to trigger lookup
+- Indentation issue in MilestoneTimer.cs where nested if statements were not properly aligned
+
+## [0.7.1] - 2025-01-16
+### Fixed
+- Recurring regular milestones now trigger exactly once per timer round instead of multiple times
+- Fixed issue where recurring milestones would trigger multiple times during a single Update() call
+- Added `ResetRecurringRegularMilestones()` to properly re-add recurring milestones only when timer resets
+
+### Changed
+- Milestones now only trigger when timer is actively running (IsRunning = true)
+- Recurring regular milestones are removed from trigger lookup after triggering and re-added on timer reset
+
+### Added
+- Added 7 tests verifying milestones don't trigger when timer is not running or stopped
+- Added tests for FastForward/Rewind behavior when timer is not running
+- Added test verifying milestones trigger correctly after ResumeTimer()
+- Added de-duplication logic in milestone processing to prevent duplicate triggers
+
+## [0.7.0] - 2025-01-16
+### Added
+- **Recurring Milestones**: New `IsRecurring` flag for milestones that persist across timer resets
+- Recurring milestones automatically reset and re-trigger in each timer round
+- Added `isRecurring` parameter to `AddRangeMilestone()` method with default value `false`
+- Comprehensive tests for recurring milestone behavior across multiple timer rounds
+
+### Changed
+- **BREAKING**: Updated `AddRangeMilestone()` signature to include optional `isRecurring` parameter
+- **BREAKING**: Updated `ITimer` interface to include `isRecurring` parameter
+- Range milestones with `IsRecurring=true` are automatically reset when timer resets
+- Non-recurring milestones (default) are removed after triggering as before
+
 ## [0.6.1] - 2025-01-16
 ### Added
 - Added tests verifying callback time override works through base class and interface references

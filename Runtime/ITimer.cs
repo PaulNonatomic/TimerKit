@@ -21,8 +21,9 @@ namespace Nonatomic.TimerKit
 		/// <param name="rangeEnd">The end of the range (lower value for TimeRemaining)</param>
 		/// <param name="interval">The interval at which to trigger callbacks</param>
 		/// <param name="callback">The callback to execute at each interval</param>
+		/// <param name="isRecurring">Whether this milestone should re-trigger every time the timer restarts</param>
 		/// <returns>The created TimerRangeMilestone</returns>
-		TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback);
+		TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback, bool isRecurring = false);
 
 		/// <summary>
 		/// Removes a specific milestone from the timer.

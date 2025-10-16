@@ -59,11 +59,12 @@ namespace Nonatomic.TimerKit
 
 		/// <summary>
 		/// Called when the timer is reset.
-		/// Resets all range milestones to their initial state.
+		/// Resets all range milestones and re-adds recurring regular milestones to their initial state.
 		/// </summary>
 		protected override void OnTimerReset()
 		{
 			ResetRangeMilestones();
+			ResetRecurringRegularMilestones();
 		}
 
 		/// <summary>
@@ -88,9 +89,9 @@ namespace Nonatomic.TimerKit
 		/// <param name="interval">The interval at which to trigger callbacks</param>
 		/// <param name="callback">The callback to execute at each interval</param>
 		/// <returns">The created TimerRangeMilestone</returns>
-		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback)
+		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback, bool isRecurring = false)
 		{
-			var rangeMilestone = new TimerRangeMilestone(type, rangeStart, rangeEnd, interval, callback);
+			var rangeMilestone = new TimerRangeMilestone(type, rangeStart, rangeEnd, interval, callback, isRecurring);
 			AddMilestone(rangeMilestone);
 			return rangeMilestone;
 		}
@@ -133,6 +134,8 @@ namespace Nonatomic.TimerKit
 		private void CheckAndTriggerMilestones()
 		{
 			if (_processingMilestones) return;
+			// Only trigger milestones when the timer is actively running
+			if (!IsRunning) return;
 
 			_processingMilestones = true;
 
@@ -232,24 +235,40 @@ namespace Nonatomic.TimerKit
 			RemoveMilestonesFromTriggerValue(triggerValue);
 			RemoveExhaustedMilestones(collectedMilestones.exhaustedMilestoneIds);
 			rangeMilestonesToReAdd.AddRange(collectedMilestones.recurringMilestones);
+			// DON'T re-add recurring regular milestones here - they should only be re-added when timer resets
+
 			InvokeMilestoneCallbacks(collectedMilestones.milestonesToTrigger);
 		}
 
-		private (List<(TimerMilestone milestone, float? intervalValue)> milestonesToTrigger, List<Guid> exhaustedMilestoneIds, List<(Guid id, TimerRangeMilestone milestone)> recurringMilestones)
+		private (List<(TimerMilestone milestone, float? intervalValue)> milestonesToTrigger, List<Guid> exhaustedMilestoneIds, List<(Guid id, TimerRangeMilestone milestone)> recurringMilestones, List<Guid> recurringRegularMilestoneIds)
 			CollectMilestonesForProcessing(List<Guid> triggerIds, float triggerValue)
 		{
 			var milestonesToTrigger = new List<(TimerMilestone milestone, float? intervalValue)>();
 			var exhaustedMilestoneIds = new List<Guid>();
 			var recurringMilestones = new List<(Guid id, TimerRangeMilestone milestone)>();
+			var recurringRegularMilestoneIds = new List<Guid>();
+			var processedIds = new HashSet<Guid>();
 
 			foreach (var id in triggerIds)
 			{
+				// Skip duplicates within the same trigger value
+				if (!processedIds.Add(id)) continue;
+
 				if (!_milestonesById.TryGetValue(id, out var milestone)) continue;
 
 				if (milestone is not TimerRangeMilestone rangeMilestone)
 				{
 					milestonesToTrigger.Add((milestone, null));
-					exhaustedMilestoneIds.Add(id);
+					// Only mark as exhausted if not recurring
+					if (!milestone.IsRecurring)
+					{
+						exhaustedMilestoneIds.Add(id);
+					}
+					else
+					{
+						// Recurring regular milestones need to be re-added
+						recurringRegularMilestoneIds.Add(id);
+					}
 					continue;
 				}
 
@@ -273,13 +292,14 @@ namespace Nonatomic.TimerKit
 				{
 					recurringMilestones.Add((id, rangeMilestone));
 				}
-				else
+				else if (!rangeMilestone.IsRecurring)
 				{
+					// Only remove if not recurring
 					exhaustedMilestoneIds.Add(id);
 				}
 			}
 
-			return (milestonesToTrigger, exhaustedMilestoneIds, recurringMilestones);
+			return (milestonesToTrigger, exhaustedMilestoneIds, recurringMilestones, recurringRegularMilestoneIds);
 		}
 
 		private List<float> CalculateCrossedIntervals(TimerRangeMilestone rangeMilestone)
@@ -359,6 +379,14 @@ namespace Nonatomic.TimerKit
 			}
 		}
 
+		private void ReAddRecurringRegularMilestones(float triggerValue, List<Guid> recurringRegularMilestoneIds)
+		{
+			foreach (var id in recurringRegularMilestoneIds)
+			{
+				AddMilestoneToTriggerValue(id, triggerValue);
+			}
+		}
+
 		private void InvokeMilestoneCallbacks(List<(TimerMilestone milestone, float? intervalValue)> milestonesToTrigger)
 		{
 			foreach (var (milestone, intervalValue) in milestonesToTrigger)
@@ -396,7 +424,12 @@ namespace Nonatomic.TimerKit
 				milestoneList = new List<Guid>();
 				_milestonesByTriggerValue[triggerValue] = milestoneList;
 			}
-			milestoneList.Add(id);
+
+			// Don't add duplicates - prevents recurring milestones from being added multiple times
+			if (!milestoneList.Contains(id))
+			{
+				milestoneList.Add(id);
+			}
 		}
 
 		private Guid? FindMilestoneId(TimerMilestone milestone)
@@ -456,6 +489,22 @@ namespace Nonatomic.TimerKit
 		{
 			var rangeMilestonesToUpdate = CollectRangeMilestones();
 			UpdateRangeMilestonePositions(rangeMilestonesToUpdate);
+		}
+
+		private void ResetRecurringRegularMilestones()
+		{
+			// Find all recurring regular (non-range) milestones
+			foreach (var pair in _milestonesById)
+			{
+				if (pair.Value is TimerRangeMilestone) continue; // Skip range milestones
+				if (!pair.Value.IsRecurring) continue; // Skip non-recurring milestones
+
+				var milestoneId = pair.Key;
+				var milestone = pair.Value;
+
+				// Re-add to trigger value lookup if not already there
+				AddMilestoneToTriggerValue(milestoneId, milestone.TriggerValue);
+			}
 		}
 
 		private List<(Guid id, TimerRangeMilestone milestone, float oldTriggerValue)> CollectRangeMilestones()

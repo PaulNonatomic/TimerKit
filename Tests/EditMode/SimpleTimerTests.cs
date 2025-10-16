@@ -1140,6 +1140,316 @@ namespace Tests.EditMode
 			Assert.That(currentTime, Is.EqualTo(3.0f).Within(0.01f),
 				"After more updates, TimeRemaining should reflect actual value");
 		}
+
+		[Test, Timeout(1000)]
+		public void Milestone_DoesNotTrigger_WhenTimerNotRunning()
+		{
+			int triggerCount = 0;
+
+			// Add a milestone
+			_timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 5f, () => triggerCount++));
+
+			// Do NOT start the timer - just call Update directly
+			_timer.Update(5f); // This should move time to 5s remaining, but milestone shouldn't trigger
+
+			Assert.AreEqual(0, triggerCount, "Milestone should not trigger when timer is not running");
+			Assert.IsFalse(_timer.IsRunning, "Timer should not be running");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_DoesNotTrigger_WhenTimerNotRunning()
+		{
+			int triggerCount = 0;
+
+			// Add a range milestone
+			_timer.AddRangeMilestone(TimeType.TimeRemaining, 5f, 1f, 1f, () => triggerCount++);
+
+			// Do NOT start the timer
+			_timer.Update(9.5f); // Would cross all intervals if timer was running
+
+			Assert.AreEqual(0, triggerCount, "Range milestone should not trigger when timer is not running");
+			Assert.IsFalse(_timer.IsRunning, "Timer should not be running");
+		}
+
+		[Test, Timeout(1000)]
+		public void Milestone_DoesNotTrigger_WhenTimerStopped()
+		{
+			int triggerCount = 0;
+
+			// Add a milestone
+			_timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 3f, () => triggerCount++));
+
+			// Start the timer and run partway
+			_timer.StartTimer();
+			_timer.Update(5f); // Down to 5s remaining
+
+			// Stop the timer
+			_timer.StopTimer();
+			Assert.IsFalse(_timer.IsRunning, "Timer should be stopped");
+
+			// Update more - this should NOT trigger the milestone
+			_timer.Update(3f); // Would be at 2s remaining if timer was running
+
+			Assert.AreEqual(0, triggerCount, "Milestone should not trigger when timer is stopped");
+		}
+
+		[Test, Timeout(1000)]
+		public void RangeMilestone_DoesNotTrigger_WhenTimerStopped()
+		{
+			int triggerCount = 0;
+
+			// Add a range milestone
+			_timer.AddRangeMilestone(TimeType.TimeRemaining, 5f, 1f, 1f, () => triggerCount++);
+
+			// Start and run partway
+			_timer.StartTimer();
+			_timer.Update(3f); // Down to 7s remaining, no triggers yet
+
+			// Stop the timer
+			_timer.StopTimer();
+			Assert.IsFalse(_timer.IsRunning, "Timer should be stopped");
+
+			// Update to cross milestones - should NOT trigger
+			_timer.Update(6f); // Would cross 5, 4, 3, 2, 1 if timer was running
+
+			Assert.AreEqual(0, triggerCount, "Range milestone should not trigger when timer is stopped");
+		}
+
+		[Test, Timeout(1000)]
+		public void Milestone_TriggersAfterResume()
+		{
+			int triggerCount = 0;
+
+			// Add a milestone
+			_timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 3f, () => triggerCount++));
+
+			// Start and stop
+			_timer.StartTimer();
+			_timer.Update(5f); // Down to 5s remaining
+			_timer.StopTimer();
+
+			// Update while stopped - should not trigger
+			_timer.Update(3f);
+			Assert.AreEqual(0, triggerCount, "Should not trigger while stopped");
+
+			// Resume and update - should trigger now
+			_timer.ResumeTimer();
+			Assert.IsTrue(_timer.IsRunning, "Timer should be running after resume");
+			_timer.Update(2f); // Down to 3s remaining - should trigger
+
+			Assert.AreEqual(1, triggerCount, "Milestone should trigger after resume");
+		}
+
+		[Test, Timeout(1000)]
+		public void FastForward_DoesNotTriggerMilestones_WhenTimerNotRunning()
+		{
+			int triggerCount = 0;
+
+			// Add a milestone
+			_timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 5f, () => triggerCount++));
+
+			// FastForward without starting timer
+			_timer.FastForward(5f);
+
+			Assert.AreEqual(0, triggerCount, "FastForward should not trigger milestones when timer is not running");
+			Assert.IsFalse(_timer.IsRunning, "Timer should not be running");
+		}
+
+		[Test, Timeout(1000)]
+		public void Rewind_DoesNotTriggerMilestones_WhenTimerNotRunning()
+		{
+			int triggerCount = 0;
+
+			// Add a milestone for elapsed time
+			_timer.AddMilestone(new TimerMilestone(TimeType.TimeElapsed, 5f, () => triggerCount++));
+
+			// Rewind without starting timer (shouldn't do anything)
+			_timer.Rewind(5f);
+
+			Assert.AreEqual(0, triggerCount, "Rewind should not trigger milestones when timer is not running");
+			Assert.IsFalse(_timer.IsRunning, "Timer should not be running");
+		}
+
+		[Test, Timeout(1000)]
+		public void RecurringMilestone_TriggersEveryTimerRound()
+		{
+			int triggerCount = 0;
+
+			// Add a recurring milestone at 5 seconds remaining
+			_timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 5f, () => {
+				triggerCount++;
+				Debug.Log($"Recurring milestone triggered (count: {triggerCount})");
+			}, isRecurring: true));
+
+			// First round
+			_timer.StartTimer();
+			_timer.Update(5f); // Trigger at 5s
+			Assert.AreEqual(1, triggerCount, "Should trigger once in first round");
+
+			_timer.Update(5f); // Complete first round
+
+			// Second round
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(5f); // Trigger at 5s
+			Assert.AreEqual(2, triggerCount, "Should trigger again in second round");
+
+			_timer.Update(5f); // Complete second round
+
+			// Third round
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(5f); // Trigger at 5s
+			Assert.AreEqual(3, triggerCount, "Should trigger again in third round");
+		}
+
+		[Test, Timeout(1000)]
+		public void RecurringRangeMilestone_TriggersEveryTimerRound()
+		{
+			int triggerCount = 0;
+			var triggerRounds = new List<int>();
+			int currentRound = 1;
+
+			// Add a recurring range milestone
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f,
+				1f,
+				1f,
+				() => {
+					triggerCount++;
+					triggerRounds.Add(currentRound);
+					Debug.Log($"Recurring range milestone triggered in round {currentRound} (total count: {triggerCount})");
+				},
+				isRecurring: true
+			);
+
+			// First round
+			_timer.StartTimer();
+			_timer.Update(9.5f); // Cross all intervals (5, 4, 3, 2, 1)
+			Assert.AreEqual(5, triggerCount, "Should trigger 5 times in first round");
+			Assert.IsTrue(triggerRounds.All(r => r == 1), "All first round triggers should be in round 1");
+
+			// Second round
+			currentRound = 2;
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(9.5f); // Cross all intervals again
+			Assert.AreEqual(10, triggerCount, "Should trigger 5 more times in second round (total 10)");
+			Assert.AreEqual(5, triggerRounds.Count(r => r == 2), "Should have 5 triggers in round 2");
+
+			// Third round
+			currentRound = 3;
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(9.5f); // Cross all intervals again
+			Assert.AreEqual(15, triggerCount, "Should trigger 5 more times in third round (total 15)");
+			Assert.AreEqual(5, triggerRounds.Count(r => r == 3), "Should have 5 triggers in round 3");
+		}
+
+		[Test, Timeout(1000)]
+		public void NonRecurringMilestone_OnlyTriggersOnce()
+		{
+			int triggerCount = 0;
+
+			// Add a non-recurring milestone (default behavior)
+			_timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 5f, () => {
+				triggerCount++;
+			}, isRecurring: false));
+
+			// First round
+			_timer.StartTimer();
+			_timer.Update(5f); // Trigger at 5s
+			Assert.AreEqual(1, triggerCount, "Should trigger once");
+
+			_timer.Update(5f); // Complete first round
+
+			// Second round - should not trigger
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(5f); // Would trigger at 5s if milestone still existed
+			Assert.AreEqual(1, triggerCount, "Should not trigger in second round (milestone was removed)");
+		}
+
+		[Test, Timeout(1000)]
+		public void RecurringAndNonRecurringMilestones_BehaveDifferently()
+		{
+			int recurringCount = 0;
+			int nonRecurringCount = 0;
+
+			// Add both types at same trigger point
+			_timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 5f, () => recurringCount++, isRecurring: true));
+			_timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 5f, () => nonRecurringCount++, isRecurring: false));
+
+			// First round - both should trigger
+			_timer.StartTimer();
+			_timer.Update(5f);
+			Assert.AreEqual(1, recurringCount, "Recurring should trigger in round 1");
+			Assert.AreEqual(1, nonRecurringCount, "Non-recurring should trigger in round 1");
+
+			// Second round - only recurring should trigger
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(5f);
+			Assert.AreEqual(2, recurringCount, "Recurring should trigger in round 2");
+			Assert.AreEqual(1, nonRecurringCount, "Non-recurring should NOT trigger in round 2");
+
+			// Third round - only recurring should trigger
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(5f);
+			Assert.AreEqual(3, recurringCount, "Recurring should trigger in round 3");
+			Assert.AreEqual(1, nonRecurringCount, "Non-recurring should still be at 1");
+		}
+
+		[Test, Timeout(1000)]
+		public void RecurringRangeMilestone_ResetsProperlyBetweenRounds()
+		{
+			var triggerValuesRound1 = new List<float>();
+			var triggerValuesRound2 = new List<float>();
+			bool isRound1 = true;
+
+			// Add recurring range milestone
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				5f,
+				1f,
+				1f,
+				() => {
+					if (isRound1)
+						triggerValuesRound1.Add(_timer.TimeRemaining);
+					else
+						triggerValuesRound2.Add(_timer.TimeRemaining);
+				},
+				isRecurring: true
+			);
+
+			// First round
+			_timer.StartTimer();
+			_timer.Update(9.5f);
+
+			// Should trigger at 5, 4, 3, 2, 1
+			Assert.AreEqual(5, triggerValuesRound1.Count);
+			Assert.That(triggerValuesRound1[0], Is.EqualTo(5f).Within(0.01f));
+			Assert.That(triggerValuesRound1[1], Is.EqualTo(4f).Within(0.01f));
+			Assert.That(triggerValuesRound1[2], Is.EqualTo(3f).Within(0.01f));
+			Assert.That(triggerValuesRound1[3], Is.EqualTo(2f).Within(0.01f));
+			Assert.That(triggerValuesRound1[4], Is.EqualTo(1f).Within(0.01f));
+
+			// Second round
+			isRound1 = false;
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(9.5f);
+
+			// Should trigger at same values again
+			Assert.AreEqual(5, triggerValuesRound2.Count);
+			Assert.That(triggerValuesRound2[0], Is.EqualTo(5f).Within(0.01f));
+			Assert.That(triggerValuesRound2[1], Is.EqualTo(4f).Within(0.01f));
+			Assert.That(triggerValuesRound2[2], Is.EqualTo(3f).Within(0.01f));
+			Assert.That(triggerValuesRound2[3], Is.EqualTo(2f).Within(0.01f));
+			Assert.That(triggerValuesRound2[4], Is.EqualTo(1f).Within(0.01f));
+		}
 	}
 	
 	/// <summary>

@@ -40,8 +40,9 @@ namespace Nonatomic.TimerKit
 		/// <param name="rangeEnd">The end of the range</param>
 		/// <param name="interval">The interval at which to trigger within the range</param>
 		/// <param name="callback">The callback to execute at each interval</param>
-		public TimerRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback)
-			: base(type, CalculateInitialTriggerValue(type, rangeStart), callback)
+		/// <param name="isRecurring">Whether this milestone should re-trigger every time the timer restarts</param>
+		public TimerRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback, bool isRecurring = false)
+			: base(type, CalculateInitialTriggerValue(type, rangeStart), callback, isRecurring)
 		{
 			RangeStart = rangeStart;
 			RangeEnd = rangeEnd;
@@ -69,12 +70,9 @@ namespace Nonatomic.TimerKit
 		
 		private float CalculateNextTriggerValue()
 		{
-			if (IsCountdownType())
-			{
-				return CalculateCountdownTriggerValue();
-			}
-			
-			return CalculateCountUpTriggerValue();
+			return IsCountdownType() 
+				? CalculateCountdownTriggerValue() 
+				: CalculateCountUpTriggerValue();
 		}
 		
 		private float CalculateCountdownTriggerValue()
