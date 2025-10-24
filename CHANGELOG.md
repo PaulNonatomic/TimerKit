@@ -1,4 +1,10 @@
 # Change Log
+## [0.8.0] - 2025-10-24
+### Added
+- **OnDurationChanged Event**: New event triggered when timer Duration property is modified, providing the new duration value
+- Event implemented across all timer classes (BasicTimer, Timer, MilestoneTimer, StandardTimer) and service wrappers
+- Comprehensive test coverage for OnDurationChanged event behavior including multiple subscribers and edge cases
+
 ## [0.7.2] - 2025-01-16
 ### Fixed
 - Recurring milestones triggering multiple times per round due to premature re-addition to trigger lookup

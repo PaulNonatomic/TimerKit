@@ -235,8 +235,7 @@ namespace Nonatomic.TimerKit
 			RemoveMilestonesFromTriggerValue(triggerValue);
 			RemoveExhaustedMilestones(collectedMilestones.exhaustedMilestoneIds);
 			rangeMilestonesToReAdd.AddRange(collectedMilestones.recurringMilestones);
-			// DON'T re-add recurring regular milestones here - they should only be re-added when timer resets
-
+			
 			InvokeMilestoneCallbacks(collectedMilestones.milestonesToTrigger);
 		}
 

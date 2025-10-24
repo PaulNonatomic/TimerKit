@@ -14,6 +14,7 @@ namespace Nonatomic.TimerKit
 		public event Action OnStop;
 		public event Action OnComplete;
 		public event Action<IReadOnlyTimer> OnTick;
+		public event Action<float> OnDurationChanged;
 
 		/// <summary>
 		/// Gets the running state of the timer.
@@ -168,6 +169,7 @@ namespace Nonatomic.TimerKit
 			_timer.OnStop += HandleTimerStopped;
 			_timer.OnComplete += HandleTimerComplete;
 			_timer.OnTick += HandleTimerTick;
+			_timer.OnDurationChanged += HandleDurationChanged;
 		}
 
 		protected virtual void OnDisable()
@@ -177,6 +179,7 @@ namespace Nonatomic.TimerKit
 			_timer.OnStop -= HandleTimerStopped;
 			_timer.OnComplete -= HandleTimerComplete;
 			_timer.OnTick -= HandleTimerTick;
+			_timer.OnDurationChanged -= HandleDurationChanged;
 		}
 
 		protected virtual void Start()
@@ -225,5 +228,11 @@ namespace Nonatomic.TimerKit
 		/// Invokes the OnStop event when the timer is stopped.
 		/// </summary>
 		protected virtual void HandleTimerStopped() => OnStop?.Invoke();
+
+		/// <summary>
+		/// Invokes the OnDurationChanged event when the timer duration is changed.
+		/// </summary>
+		/// <param name="newDuration">The new duration value.</param>
+		protected virtual void HandleDurationChanged(float newDuration) => OnDurationChanged?.Invoke(newDuration);
 	}
 }

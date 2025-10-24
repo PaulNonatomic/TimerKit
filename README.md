@@ -128,6 +128,7 @@ timer.OnResume += () => Debug.Log("Timer resumed");
 timer.OnStop += () => Debug.Log("Timer stopped");
 timer.OnComplete += () => Debug.Log("Timer completed");
 timer.OnTick += (IReadOnlyTimer t) => Debug.Log($"Time: {t.TimeRemaining}");
+timer.OnDurationChanged += (float newDuration) => Debug.Log($"Duration changed to: {newDuration}");
 ```
 
 ### Milestones

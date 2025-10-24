@@ -1450,8 +1450,100 @@ namespace Tests.EditMode
 			Assert.That(triggerValuesRound2[3], Is.EqualTo(2f).Within(0.01f));
 			Assert.That(triggerValuesRound2[4], Is.EqualTo(1f).Within(0.01f));
 		}
+		[Test, Timeout(1000)]
+		public void OnDurationChanged_TriggersWhenDurationIsSet()
+		{
+			float capturedDuration = 0;
+			int eventCallCount = 0;
+
+			_timer.OnDurationChanged += (newDuration) =>
+			{
+				capturedDuration = newDuration;
+				eventCallCount++;
+			};
+
+			// Change duration
+			_timer.Duration = 20f;
+
+			Assert.AreEqual(1, eventCallCount, "OnDurationChanged should have been called once");
+			Assert.AreEqual(20f, capturedDuration, "Event should provide the new duration value");
+			Assert.AreEqual(20f, _timer.Duration, "Timer duration should be updated");
+		}
+
+		[Test, Timeout(1000)]
+		public void OnDurationChanged_TriggersWhenDurationChangedWhileRunning()
+		{
+			float capturedDuration = 0;
+			int eventCallCount = 0;
+
+			_timer.OnDurationChanged += (newDuration) =>
+			{
+				capturedDuration = newDuration;
+				eventCallCount++;
+			};
+
+			// Start the timer
+			_timer.StartTimer();
+			_timer.Update(3f); // 7 seconds remaining
+
+			// Change duration while running
+			_timer.Duration = 15f;
+
+			Assert.AreEqual(1, eventCallCount, "OnDurationChanged should have been called");
+			Assert.AreEqual(15f, capturedDuration, "Event should provide the new duration value");
+			Assert.AreEqual(7f, _timer.TimeRemaining, "TimeRemaining should be clamped to new duration");
+		}
+
+		[Test, Timeout(1000)]
+		public void OnDurationChanged_ClampsTimeRemainingWhenDurationDecreased()
+		{
+			float capturedDuration = 0;
+
+			_timer.OnDurationChanged += (newDuration) => capturedDuration = newDuration;
+
+			// Start the timer
+			_timer.StartTimer();
+			_timer.Update(3f); // 7 seconds remaining
+
+			// Decrease duration below current TimeRemaining
+			_timer.Duration = 5f;
+
+			Assert.AreEqual(5f, capturedDuration, "Event should provide the new duration");
+			Assert.AreEqual(5f, _timer.TimeRemaining, "TimeRemaining should be clamped to new duration");
+		}
+
+		[Test, Timeout(1000)]
+		public void OnDurationChanged_MultipleSubscribers_AllReceiveEvent()
+		{
+			float subscriber1Value = 0;
+			float subscriber2Value = 0;
+			float subscriber3Value = 0;
+
+			_timer.OnDurationChanged += (newDuration) => subscriber1Value = newDuration;
+			_timer.OnDurationChanged += (newDuration) => subscriber2Value = newDuration;
+			_timer.OnDurationChanged += (newDuration) => subscriber3Value = newDuration;
+
+			_timer.Duration = 25f;
+
+			Assert.AreEqual(25f, subscriber1Value, "First subscriber should receive event");
+			Assert.AreEqual(25f, subscriber2Value, "Second subscriber should receive event");
+			Assert.AreEqual(25f, subscriber3Value, "Third subscriber should receive event");
+		}
+
+		[Test, Timeout(1000)]
+		public void OnDurationChanged_TriggersWithSameValue()
+		{
+			int eventCallCount = 0;
+
+			_timer.OnDurationChanged += (newDuration) => eventCallCount++;
+
+			// Set to same value as current duration
+			_timer.Duration = 10f; // Already 10f from Setup
+
+			Assert.AreEqual(1, eventCallCount, "OnDurationChanged should trigger even when set to same value");
+		}
 	}
-	
+
 	/// <summary>
 	/// Tests for backward compatibility with the deprecated SimpleTimer class.
 	/// Ensures that existing code using SimpleTimer continues to work.

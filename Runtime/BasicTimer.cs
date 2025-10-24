@@ -14,6 +14,7 @@ namespace Nonatomic.TimerKit
 		public event Action OnStop;
 		public event Action OnComplete;
 		public event Action<IReadOnlyTimer> OnTick;
+		public event Action<float> OnDurationChanged;
 
 		public float Duration
 		{
@@ -25,6 +26,7 @@ namespace Nonatomic.TimerKit
 				{
 					TimeRemaining = Math.Min(TimeRemaining, _duration);
 				}
+				OnDurationChanged?.Invoke(_duration);
 			}
 		}
 		

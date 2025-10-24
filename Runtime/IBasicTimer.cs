@@ -33,6 +33,11 @@ namespace Nonatomic.TimerKit
 		event Action<IReadOnlyTimer> OnTick;
 
 		/// <summary>
+		/// Occurs when the timer's duration is changed, providing the new duration value.
+		/// </summary>
+		event Action<float> OnDurationChanged;
+
+		/// <summary>
 		/// Gets or sets the total duration of the timer in seconds.
 		/// </summary>
 		new float Duration { get; set; }

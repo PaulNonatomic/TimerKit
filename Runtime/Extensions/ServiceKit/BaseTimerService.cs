@@ -25,13 +25,14 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 		public float ProgressRemaining => Timer.ProgressRemaining;
 		
 		protected ITimer Timer;
-		
+
 		private Action _onCompleteHandler;
 		private Action _onResumeHandler;
 
 		private Action _onStartHandler;
 		private Action _onStopHandler;
 		private Action<IReadOnlyTimer> _onTickHandler;
+		private Action<float> _onDurationChangedHandler;
 
 		protected override void OnDestroy()
 		{
@@ -42,6 +43,7 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 				Timer.OnComplete -= _onCompleteHandler;
 				Timer.OnStop -= _onStopHandler;
 				Timer.OnTick -= _onTickHandler;
+				Timer.OnDurationChanged -= _onDurationChangedHandler;
 			}
 
 			base.OnDestroy();
@@ -52,6 +54,7 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 		public event Action OnResume;
 		public event Action OnStop;
 		public event Action<IReadOnlyTimer> OnTick;
+		public event Action<float> OnDurationChanged;
 
 		public float TimeByType(TimeType type)
 		{
@@ -122,12 +125,14 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 			_onCompleteHandler = () => OnComplete?.Invoke();
 			_onStopHandler = () => OnStop?.Invoke();
 			_onTickHandler = timer => OnTick?.Invoke(timer);
+			_onDurationChangedHandler = newDuration => OnDurationChanged?.Invoke(newDuration);
 
 			Timer.OnStart += _onStartHandler;
 			Timer.OnResume += _onResumeHandler;
 			Timer.OnComplete += _onCompleteHandler;
 			Timer.OnStop += _onStopHandler;
 			Timer.OnTick += _onTickHandler;
+			Timer.OnDurationChanged += _onDurationChangedHandler;
 		}
 	}
 }

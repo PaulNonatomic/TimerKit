@@ -19,6 +19,7 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 		public event Action OnStop;
 		public event Action OnComplete;
 		public event Action<IReadOnlyTimer> OnTick;
+		public event Action<float> OnDurationChanged;
 
 		public bool IsRunning => _timer.IsRunning;
 		
@@ -67,6 +68,7 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 			_timer.OnStop += HandleTimerStopped;
 			_timer.OnComplete += HandleTimerComplete;
 			_timer.OnTick += HandleTimerTick;
+			_timer.OnDurationChanged += HandleDurationChanged;
 		}
 
 		protected virtual void OnDisable()
@@ -76,6 +78,7 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 			_timer.OnStop -= HandleTimerStopped;
 			_timer.OnComplete -= HandleTimerComplete;
 			_timer.OnTick -= HandleTimerTick;
+			_timer.OnDurationChanged -= HandleDurationChanged;
 		}
 
 		protected virtual void Start()
@@ -101,6 +104,7 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 		protected virtual void HandleTimerStart() => OnStart?.Invoke();
 		protected virtual void HandleTimerResume() => OnResume?.Invoke();
 		protected virtual void HandleTimerStopped() => OnStop?.Invoke();
+		protected virtual void HandleDurationChanged(float newDuration) => OnDurationChanged?.Invoke(newDuration);
 	}
 }
 
