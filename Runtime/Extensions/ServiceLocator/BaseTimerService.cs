@@ -21,18 +21,64 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 		public event Action<IReadOnlyTimer> OnTick;
 		public event Action<float> OnDurationChanged;
 
-		public bool IsRunning => _timer.IsRunning;
-		
-		public float Duration
+		public bool IsRunning
 		{
-			get => _timer.Duration;
-			set => _timer.Duration = value;
+			get
+			{
+				InitializeTimerIfNeeded();
+				return _timer.IsRunning;
+			}
 		}
 
-		public float TimeRemaining => _timer.TimeRemaining;
-		public float TimeElapsed => _timer.TimeElapsed;
-		public float ProgressElapsed => _timer.ProgressElapsed;
-		public float ProgressRemaining => _timer.ProgressRemaining;
+		public float Duration
+		{
+			get
+			{
+				InitializeTimerIfNeeded();
+				return _timer.Duration;
+			}
+			set
+			{
+				InitializeTimerIfNeeded();
+				_timer.Duration = value;
+			}
+		}
+
+		public float TimeRemaining
+		{
+			get
+			{
+				InitializeTimerIfNeeded();
+				return _timer.TimeRemaining;
+			}
+		}
+
+		public float TimeElapsed
+		{
+			get
+			{
+				InitializeTimerIfNeeded();
+				return _timer.TimeElapsed;
+			}
+		}
+
+		public float ProgressElapsed
+		{
+			get
+			{
+				InitializeTimerIfNeeded();
+				return _timer.ProgressElapsed;
+			}
+		}
+
+		public float ProgressRemaining
+		{
+			get
+			{
+				InitializeTimerIfNeeded();
+				return _timer.ProgressRemaining;
+			}
+		}
 
 		[SerializeField] protected float _duration = 10f;
 		[SerializeField] protected bool _useScaledTime = true;
@@ -40,29 +86,99 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 
 		protected StandardTimer _timer;
 
-		public virtual float TimeByType(TimeType type) => _timer.TimeByType(type);
-		public virtual void StartTimer() => _timer.StartTimer();
-		public virtual void ResumeTimer() => _timer.ResumeTimer();
-		public virtual void StopTimer() => _timer.StopTimer();
-		public virtual void ResetTimer() => _timer.ResetTimer();
-		public virtual void FastForward(float seconds) => _timer.FastForward(seconds);
-		public virtual void Rewind(float seconds) => _timer.Rewind(seconds);
-		public virtual void AddMilestone(TimerMilestone milestone) => _timer.AddMilestone(milestone);
-		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback, bool isRecurring = false) 
-			=> _timer.AddRangeMilestone(type, rangeStart, rangeEnd, interval, callback, isRecurring);
-		public virtual void RemoveMilestone(TimerMilestone milestone) => _timer.RemoveMilestone(milestone);
-		public virtual void RemoveAllMilestones() => _timer.RemoveAllMilestones();
-		public virtual void RemoveMilestonesByCondition(Predicate<TimerMilestone> condition) => _timer.RemoveMilestonesByCondition(condition);
+		public virtual float TimeByType(TimeType type)
+		{
+			InitializeTimerIfNeeded();
+			return _timer.TimeByType(type);
+		}
+
+		public virtual void StartTimer()
+		{
+			InitializeTimerIfNeeded();
+			_timer.StartTimer();
+		}
+
+		public virtual void ResumeTimer()
+		{
+			InitializeTimerIfNeeded();
+			_timer.ResumeTimer();
+		}
+
+		public virtual void StopTimer()
+		{
+			InitializeTimerIfNeeded();
+			_timer.StopTimer();
+		}
+
+		public virtual void ResetTimer()
+		{
+			InitializeTimerIfNeeded();
+			_timer.ResetTimer();
+		}
+
+		public virtual void FastForward(float seconds)
+		{
+			InitializeTimerIfNeeded();
+			_timer.FastForward(seconds);
+		}
+
+		public virtual void Rewind(float seconds)
+		{
+			InitializeTimerIfNeeded();
+			_timer.Rewind(seconds);
+		}
+
+		public virtual void AddMilestone(TimerMilestone milestone)
+		{
+			InitializeTimerIfNeeded();
+			_timer.AddMilestone(milestone);
+		}
+
+		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback, bool isRecurring = false)
+		{
+			InitializeTimerIfNeeded();
+			return _timer.AddRangeMilestone(type, rangeStart, rangeEnd, interval, callback, isRecurring);
+		}
+
+		public virtual void RemoveMilestone(TimerMilestone milestone)
+		{
+			InitializeTimerIfNeeded();
+			_timer.RemoveMilestone(milestone);
+		}
+
+		public virtual void RemoveAllMilestones()
+		{
+			InitializeTimerIfNeeded();
+			_timer.RemoveAllMilestones();
+		}
+
+		public virtual void RemoveMilestonesByCondition(Predicate<TimerMilestone> condition)
+		{
+			InitializeTimerIfNeeded();
+			_timer.RemoveMilestonesByCondition(condition);
+		}
 
 		protected override void Awake()
 		{
 			base.Awake();
-			_timer = new StandardTimer(_duration);
+			InitializeTimerIfNeeded();
 			ServiceReady();
 		}
-		
+
+		/// <summary>
+		/// Initializes the timer if it hasn't been initialized yet.
+		/// </summary>
+		private void InitializeTimerIfNeeded()
+		{
+			if (_timer == null)
+			{
+				_timer = new StandardTimer(_duration);
+			}
+		}
+
 		protected virtual void OnEnable()
 		{
+			InitializeTimerIfNeeded();
 			_timer.OnStart += HandleTimerStart;
 			_timer.OnResume += HandleTimerResume;
 			_timer.OnStop += HandleTimerStopped;
@@ -73,6 +189,8 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 
 		protected virtual void OnDisable()
 		{
+			if (_timer == null) return;
+
 			_timer.OnStart -= HandleTimerStart;
 			_timer.OnResume -= HandleTimerResume;
 			_timer.OnStop -= HandleTimerStopped;

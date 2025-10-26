@@ -14,16 +14,63 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 	{
 		public float Duration
 		{
-			get => Timer.Duration;
-			set => Timer.Duration = value;
+			get
+			{
+				EnsureTimerInitialized();
+				return Timer.Duration;
+			}
+			set
+			{
+				EnsureTimerInitialized();
+				Timer.Duration = value;
+			}
 		}
 
-		public bool IsRunning => Timer.IsRunning;
-		public float TimeRemaining => Timer.TimeRemaining;
-		public float TimeElapsed => Timer.TimeElapsed;
-		public float ProgressElapsed => Timer.ProgressElapsed;
-		public float ProgressRemaining => Timer.ProgressRemaining;
-		
+		public bool IsRunning
+		{
+			get
+			{
+				EnsureTimerInitialized();
+				return Timer.IsRunning;
+			}
+		}
+
+		public float TimeRemaining
+		{
+			get
+			{
+				EnsureTimerInitialized();
+				return Timer.TimeRemaining;
+			}
+		}
+
+		public float TimeElapsed
+		{
+			get
+			{
+				EnsureTimerInitialized();
+				return Timer.TimeElapsed;
+			}
+		}
+
+		public float ProgressElapsed
+		{
+			get
+			{
+				EnsureTimerInitialized();
+				return Timer.ProgressElapsed;
+			}
+		}
+
+		public float ProgressRemaining
+		{
+			get
+			{
+				EnsureTimerInitialized();
+				return Timer.ProgressRemaining;
+			}
+		}
+
 		protected ITimer Timer;
 
 		private Action _onCompleteHandler;
@@ -58,67 +105,84 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 
 		public float TimeByType(TimeType type)
 		{
+			EnsureTimerInitialized();
 			return Timer.TimeByType(type);
 		}
 
 		public void StartTimer()
 		{
+			EnsureTimerInitialized();
 			Timer.StartTimer();
 		}
 
 		public void ResumeTimer()
 		{
+			EnsureTimerInitialized();
 			Timer.ResumeTimer();
 		}
 
 		public void StopTimer()
 		{
+			EnsureTimerInitialized();
 			Timer.StopTimer();
 		}
 
 		public void ResetTimer()
 		{
+			EnsureTimerInitialized();
 			Timer.ResetTimer();
 		}
 
 		public void FastForward(float seconds)
 		{
+			EnsureTimerInitialized();
 			Timer.FastForward(seconds);
 		}
 
 		public void Rewind(float seconds)
 		{
+			EnsureTimerInitialized();
 			Timer.Rewind(seconds);
 		}
 
 		public void AddMilestone(TimerMilestone milestone)
 		{
+			EnsureTimerInitialized();
 			Timer.AddMilestone(milestone);
 		}
 
 		public void RemoveMilestone(TimerMilestone milestone)
 		{
+			EnsureTimerInitialized();
 			Timer.RemoveMilestone(milestone);
 		}
 
 		public void RemoveAllMilestones()
 		{
+			EnsureTimerInitialized();
 			Timer.RemoveAllMilestones();
 		}
 
 		public void RemoveMilestonesByCondition(Predicate<TimerMilestone> condition)
 		{
+			EnsureTimerInitialized();
 			Timer.RemoveMilestonesByCondition(condition);
 		}
 
 		public TimerRangeMilestone AddRangeMilestone(TimeType timeType, float min, float max, float interval, Action action, bool isRecurring = false)
 		{
+			EnsureTimerInitialized();
 			return Timer.AddRangeMilestone(timeType, min, max, interval, action, isRecurring);
 		}
 
-		protected override void InitializeService()
+		/// <summary>
+		/// Ensures the timer is initialized before use.
+		/// </summary>
+		private void EnsureTimerInitialized()
 		{
-			Timer ??= gameObject.AddComponent<Timer>();
+			if (Timer != null) return;
+
+			Timer = gameObject.AddComponent<Timer>();
 
 			_onStartHandler = () => OnStart?.Invoke();
 			_onResumeHandler = () => OnResume?.Invoke();
@@ -133,6 +197,11 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 			Timer.OnStop += _onStopHandler;
 			Timer.OnTick += _onTickHandler;
 			Timer.OnDurationChanged += _onDurationChangedHandler;
+		}
+
+		protected override void InitializeService()
+		{
+			EnsureTimerInitialized();
 		}
 	}
 }

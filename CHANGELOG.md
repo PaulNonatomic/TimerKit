@@ -1,4 +1,14 @@
 # Change Log
+## [0.8.1] - 2025-10-26
+### Fixed
+- Null reference errors when timer methods or properties accessed before Unity lifecycle initialization
+- Added lazy initialization to all Timer and BaseTimerService methods and properties
+- OnDisable now safely handles cases where timer is not yet initialized
+
+### Added
+- TimerLifecycleTests with 24 tests verifying safe access at any Unity lifecycle point
+- Tests cover ResetTimer, StartTimer, properties, milestones, and all timer operations before/after Awake/OnEnable
+
 ## [0.8.0] - 2025-10-24
 ### Added
 - **OnDurationChanged Event**: New event triggered when timer Duration property is modified, providing the new duration value
