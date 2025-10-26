@@ -12,7 +12,22 @@ namespace Nonatomic.TimerKit
 		/// Adds a milestone to the timer, which will trigger a specified action when the timer reaches a specific point.
 		/// </summary>
 		void AddMilestone(TimerMilestone milestone);
-		
+
+		/// <summary>
+		/// Adds a milestone to the timer by specifying its components.
+		/// </summary>
+		/// <param name="type">The time type (TimeRemaining, TimeElapsed, etc.)</param>
+		/// <param name="triggerValue">The value at which to trigger the milestone</param>
+		/// <param name="callback">The callback to execute when the milestone is reached</param>
+		/// <param name="isRecurring">Whether this milestone should re-trigger every time the timer restarts</param>
+		/// <returns>The created TimerMilestone</returns>
+		TimerMilestone AddMilestone(TimeType type, float triggerValue, Action callback, bool isRecurring = false);
+
+		/// <summary>
+		/// Adds a range milestone to the timer.
+		/// </summary>
+		void AddRangeMilestone(TimerRangeMilestone rangeMilestone);
+
 		/// <summary>
 		/// Adds a range milestone that triggers at regular intervals within a specified range.
 		/// </summary>

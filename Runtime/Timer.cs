@@ -94,13 +94,6 @@ namespace Nonatomic.TimerKit
 			}
 		}
 
-		[SerializeField] private float _duration = 10f;
-		[SerializeField] private bool _useScaledTime = true;
-		[SerializeField] private bool _runOnStart = false;
-
-		private StandardTimer _timer;
-		private ITimeSource _timeSource;
-
 		/// <summary>
 		/// Gets the time as either TimeRemaining, TimeElapsed, ProgressElapsed, ProgressRemaining
 		/// </summary>
@@ -176,6 +169,30 @@ namespace Nonatomic.TimerKit
 		}
 
 		/// <summary>
+		/// Adds a milestone to the timer by specifying its components.
+		/// </summary>
+		/// <param name="type">The time type (TimeRemaining, TimeElapsed, etc.)</param>
+		/// <param name="triggerValue">The value at which to trigger the milestone</param>
+		/// <param name="callback">The callback to execute when the milestone is reached</param>
+		/// <param name="isRecurring">Whether this milestone should re-trigger every time the timer restarts</param>
+		/// <returns>The created TimerMilestone</returns>
+		public virtual TimerMilestone AddMilestone(TimeType type, float triggerValue, Action callback, bool isRecurring = false)
+		{
+			var milestone = new TimerMilestone(type, triggerValue, callback, isRecurring);
+			AddMilestone(milestone);
+			return milestone;
+		}
+
+		/// <summary>
+		/// Adds a range milestone to the timer.
+		/// </summary>
+		public virtual void AddRangeMilestone(TimerRangeMilestone rangeMilestone)
+		{
+			InitializeTimerIfNeeded();
+			_timer.AddRangeMilestone(rangeMilestone);
+		}
+
+		/// <summary>
 		/// Adds a range milestone that triggers at regular intervals within a specified range.
 		/// </summary>
 		/// <param name="type">The time type (TimeRemaining, TimeElapsed, etc.)</param>
@@ -218,22 +235,6 @@ namespace Nonatomic.TimerKit
 			_timer.RemoveMilestonesByCondition(condition);
 		}
 
-		protected virtual void Awake()
-		{
-			InitializeTimerIfNeeded();
-		}
-
-		/// <summary>
-		/// Initializes the timer if it hasn't been initialized yet.
-		/// </summary>
-		private void InitializeTimerIfNeeded()
-		{
-			if (_timer == null)
-			{
-				_timer = new StandardTimer(_duration, _timeSource);
-			}
-		}
-		
 		/// <summary>
 		/// Sets a custom time source for the timer.
 		/// Must be called before Awake or recreate the timer after setting.
@@ -247,19 +248,42 @@ namespace Nonatomic.TimerKit
 				// Recreate timer with new time source
 				var currentDuration = _timer.Duration;
 				var wasRunning = _timer.IsRunning;
-				
+
 				// Unsubscribe from old timer
 				OnDisable();
-				
+
 				// Create new timer with the time source
 				// Use preserveTimeSourceValue = true to keep the time source's existing value
 				_timer = new StandardTimer(currentDuration, timeSource, preserveTimeSourceValue: true);
-				
+
 				// Resubscribe to new timer
 				OnEnable();
 
 				if (!wasRunning) return;
 				_timer.ResumeTimer();
+			}
+		}
+
+		[SerializeField] private float _duration = 10f;
+		[SerializeField] private bool _useScaledTime = true;
+		[SerializeField] private bool _runOnStart = false;
+
+		private StandardTimer _timer;
+		private ITimeSource _timeSource;
+
+		protected virtual void Awake()
+		{
+			InitializeTimerIfNeeded();
+		}
+
+		/// <summary>
+		/// Initializes the timer if it hasn't been initialized yet.
+		/// </summary>
+		private void InitializeTimerIfNeeded()
+		{
+			if (_timer == null)
+			{
+				_timer = new StandardTimer(_duration, _timeSource);
 			}
 		}
 		

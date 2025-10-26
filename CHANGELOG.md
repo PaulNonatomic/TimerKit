@@ -1,4 +1,14 @@
 # Change Log
+## [0.9.0] - 2025-10-26
+### Added
+- **Convenience API for AddMilestone**: New overload accepting milestone components directly
+- `AddMilestone(TimeType type, float triggerValue, Action callback, bool isRecurring = false)` method
+- Consistent API pattern - both TimerMilestone and TimerRangeMilestone now support component-based creation
+- 9 comprehensive tests for convenience API covering all TimeTypes, recurring behavior, and equivalence with manual creation
+
+### Changed
+- ITimer interface extended with new AddMilestone overload
+
 ## [0.8.1] - 2025-10-26
 ### Fixed
 - Null reference errors when timer methods or properties accessed before Unity lifecycle initialization

@@ -1542,6 +1542,278 @@ namespace Tests.EditMode
 
 			Assert.AreEqual(1, eventCallCount, "OnDurationChanged should trigger even when set to same value");
 		}
+
+		#region Convenience API Tests
+
+		[Test]
+		public void AddMilestone_WithComponents_CreatesAndAddsMilestone()
+		{
+			// Arrange
+			bool callbackInvoked = false;
+
+			// Act
+			var milestone = _timer.AddMilestone(TimeType.TimeRemaining, 5f, () => callbackInvoked = true);
+			_timer.StartTimer();
+			_timer.Update(5f); // Move to 5 seconds remaining
+
+			// Assert
+			Assert.IsNotNull(milestone, "AddMilestone should return the created milestone");
+			Assert.AreEqual(TimeType.TimeRemaining, milestone.Type, "Milestone should have correct TimeType");
+			Assert.AreEqual(5f, milestone.TriggerValue, "Milestone should have correct trigger value");
+			Assert.IsTrue(callbackInvoked, "Milestone callback should have been invoked");
+		}
+
+		[Test]
+		public void AddMilestone_WithComponents_NonRecurring_DefaultBehavior()
+		{
+			// Arrange
+			int callbackCount = 0;
+
+			// Act
+			var milestone = _timer.AddMilestone(TimeType.TimeRemaining, 5f, () => callbackCount++);
+
+			// Assert
+			Assert.IsFalse(milestone.IsRecurring, "Milestone should not be recurring by default");
+
+			// Trigger once
+			_timer.StartTimer();
+			_timer.Update(5f);
+			Assert.AreEqual(1, callbackCount, "Non-recurring milestone should trigger once");
+
+			// Reset and check it doesn't trigger again
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(5f);
+			Assert.AreEqual(1, callbackCount, "Non-recurring milestone should not trigger after reset");
+		}
+
+		[Test]
+		public void AddMilestone_WithComponents_Recurring_TriggersEveryRound()
+		{
+			// Arrange
+			int callbackCount = 0;
+
+			// Act
+			var milestone = _timer.AddMilestone(TimeType.TimeRemaining, 5f, () => callbackCount++, isRecurring: true);
+
+			// Assert
+			Assert.IsTrue(milestone.IsRecurring, "Milestone should be recurring");
+
+			// First round
+			_timer.StartTimer();
+			_timer.Update(5f);
+			Assert.AreEqual(1, callbackCount, "Recurring milestone should trigger in first round");
+
+			// Second round
+			_timer.ResetTimer();
+			_timer.StartTimer();
+			_timer.Update(5f);
+			Assert.AreEqual(2, callbackCount, "Recurring milestone should trigger again in second round");
+		}
+
+		[Test]
+		public void AddMilestone_WithComponents_TimeElapsed_Works()
+		{
+			// Arrange
+			bool callbackInvoked = false;
+
+			// Act
+			_timer.AddMilestone(TimeType.TimeElapsed, 3f, () => callbackInvoked = true);
+			_timer.StartTimer();
+			_timer.Update(3f); // 3 seconds elapsed
+
+			// Assert
+			Assert.IsTrue(callbackInvoked, "Milestone with TimeElapsed should trigger correctly");
+		}
+
+		[Test]
+		public void AddMilestone_WithComponents_ProgressElapsed_Works()
+		{
+			// Arrange
+			bool callbackInvoked = false;
+
+			// Act
+			_timer.AddMilestone(TimeType.ProgressElapsed, 0.5f, () => callbackInvoked = true);
+			_timer.StartTimer();
+			_timer.Update(5f); // 50% elapsed
+
+			// Assert
+			Assert.IsTrue(callbackInvoked, "Milestone with ProgressElapsed should trigger correctly");
+		}
+
+		[Test]
+		public void AddMilestone_ConvenienceAPI_MatchesManualCreation()
+		{
+			// Arrange
+			int convenienceCallbackCount = 0;
+			int manualCallbackCount = 0;
+
+			// Act - Create using convenience API
+			var convenienceMilestone = _timer.AddMilestone(
+				TimeType.TimeRemaining,
+				7f,
+				() => convenienceCallbackCount++,
+				isRecurring: true
+			);
+
+			// Act - Create manually
+			var manualMilestone = new TimerMilestone(
+				TimeType.TimeRemaining,
+				7f,
+				() => manualCallbackCount++,
+				isRecurring: true
+			);
+			_timer.AddMilestone(manualMilestone);
+
+			_timer.StartTimer();
+			_timer.Update(3f); // Move to 7 seconds remaining
+
+			// Assert - Both should behave identically
+			Assert.AreEqual(1, convenienceCallbackCount, "Convenience API milestone should trigger");
+			Assert.AreEqual(1, manualCallbackCount, "Manual milestone should trigger");
+			Assert.AreEqual(convenienceMilestone.Type, manualMilestone.Type, "Type should match");
+			Assert.AreEqual(convenienceMilestone.TriggerValue, manualMilestone.TriggerValue, "TriggerValue should match");
+			Assert.AreEqual(convenienceMilestone.IsRecurring, manualMilestone.IsRecurring, "IsRecurring should match");
+		}
+
+		[Test]
+		public void AddMilestone_WithComponents_ReturnedMilestoneCanBeRemoved()
+		{
+			// Arrange
+			int callbackCount = 0;
+			var milestone = _timer.AddMilestone(TimeType.TimeRemaining, 5f, () => callbackCount++);
+
+			_timer.StartTimer();
+			_timer.Update(3f); // Move to 7 seconds
+
+			// Act - Remove the milestone before it triggers
+			_timer.RemoveMilestone(milestone);
+			_timer.Update(2f); // Move to 5 seconds - would normally trigger
+
+			// Assert
+			Assert.AreEqual(0, callbackCount, "Removed milestone should not trigger");
+		}
+
+		[Test]
+		public void AddMilestone_MultipleWithComponents_AllTriggerCorrectly()
+		{
+			// Arrange
+			bool milestone1Triggered = false;
+			bool milestone2Triggered = false;
+			bool milestone3Triggered = false;
+
+			// Act
+			_timer.AddMilestone(TimeType.TimeRemaining, 8f, () => milestone1Triggered = true);
+			_timer.AddMilestone(TimeType.TimeRemaining, 5f, () => milestone2Triggered = true);
+			_timer.AddMilestone(TimeType.TimeRemaining, 2f, () => milestone3Triggered = true);
+
+			_timer.StartTimer();
+			_timer.Update(2f); // 8 seconds remaining
+			Assert.IsTrue(milestone1Triggered, "First milestone should trigger at 8 seconds");
+			Assert.IsFalse(milestone2Triggered, "Second milestone should not trigger yet");
+			Assert.IsFalse(milestone3Triggered, "Third milestone should not trigger yet");
+
+			_timer.Update(3f); // 5 seconds remaining
+			Assert.IsTrue(milestone2Triggered, "Second milestone should trigger at 5 seconds");
+			Assert.IsFalse(milestone3Triggered, "Third milestone should not trigger yet");
+
+			_timer.Update(3f); // 2 seconds remaining
+			Assert.IsTrue(milestone3Triggered, "Third milestone should trigger at 2 seconds");
+		}
+
+		[Test]
+		public void AddRangeMilestone_WithInstance_Works()
+		{
+			// Arrange
+			int callbackCount = 0;
+			var rangeMilestone = new TimerRangeMilestone(
+				TimeType.TimeRemaining,
+				8f,  // Start at 8 seconds (not 10, to avoid triggering at start)
+				0f,
+				2f,
+				() => callbackCount++
+			);
+
+			// Act
+			_timer.AddRangeMilestone(rangeMilestone);
+			_timer.StartTimer();
+			_timer.Update(1f); // 9 seconds remaining - no trigger yet
+
+			Assert.AreEqual(0, callbackCount, "Should not trigger yet");
+
+			_timer.Update(1f); // 8 seconds remaining - triggers at 8s
+			Assert.AreEqual(1, callbackCount, "Should trigger at 8 seconds");
+
+			_timer.Update(2f); // 6 seconds remaining - triggers at 6s
+			Assert.AreEqual(2, callbackCount, "Should trigger at 6 seconds");
+
+			_timer.Update(2f); // 4 seconds remaining - triggers at 4s
+			Assert.AreEqual(3, callbackCount, "Should trigger at 4 seconds");
+		}
+
+		[Test]
+		public void AddRangeMilestone_WithInstance_CanBeRemoved()
+		{
+			// Arrange
+			int callbackCount = 0;
+			var rangeMilestone = new TimerRangeMilestone(
+				TimeType.TimeRemaining,
+				8f,  // Start at 8 seconds to avoid immediate trigger
+				0f,
+				2f,
+				() => callbackCount++
+			);
+
+			// Act
+			_timer.AddRangeMilestone(rangeMilestone);
+			_timer.StartTimer();
+
+			// Remove before any triggers
+			_timer.RemoveMilestone(rangeMilestone);
+			_timer.Update(10f); // Complete the timer
+
+			// Assert
+			Assert.AreEqual(0, callbackCount, "Removed range milestone should not trigger");
+		}
+
+		[Test]
+		public void AddRangeMilestone_BothAPIs_WorkIdentically()
+		{
+			// Arrange
+			int instanceCallbackCount = 0;
+			int componentsCallbackCount = 0;
+
+			// Create using instance API
+			var instanceMilestone = new TimerRangeMilestone(
+				TimeType.TimeRemaining,
+				8f,  // Start at 8 seconds
+				3f,  // End at 3 seconds
+				1f,  // Every 1 second
+				() => instanceCallbackCount++
+			);
+			_timer.AddRangeMilestone(instanceMilestone);
+
+			// Create using components API
+			_timer.AddRangeMilestone(
+				TimeType.TimeRemaining,
+				8f,  // Start at 8 seconds
+				3f,  // End at 3 seconds
+				1f,  // Every 1 second
+				() => componentsCallbackCount++
+			);
+
+			// Act
+			_timer.StartTimer();
+			_timer.Update(7f); // Move to 3 seconds remaining (triggers at 8,7,6,5,4,3)
+
+			// Assert - Both should trigger the same number of times
+			Assert.AreEqual(instanceCallbackCount, componentsCallbackCount,
+				"Both APIs should produce identical behavior");
+			Assert.AreEqual(6, instanceCallbackCount,
+				"Should have triggered 6 times (at 8,7,6,5,4,3 seconds)");
+		}
+
+		#endregion
 	}
 
 	/// <summary>
@@ -1581,14 +1853,14 @@ namespace Tests.EditMode
 			#pragma warning disable CS0618 // Type or member is obsolete
 			var timer = new SimpleTimer(10.0f);
 			#pragma warning restore CS0618
-			
+
 			bool milestoneTriggered = false;
 			var milestone = new TimerMilestone(TimeType.TimeRemaining, 5.0f, () => milestoneTriggered = true);
-			
+
 			timer.AddMilestone(milestone);
 			timer.StartTimer();
 			timer.Update(5.0f); // Should trigger milestone at 5 seconds remaining
-			
+
 			Assert.IsTrue(milestoneTriggered, "Milestone should have triggered");
 		}
 	}

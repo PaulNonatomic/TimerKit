@@ -80,12 +80,6 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 			}
 		}
 
-		[SerializeField] protected float _duration = 10f;
-		[SerializeField] protected bool _useScaledTime = true;
-		[SerializeField] protected bool _runOnStart = false;
-
-		protected StandardTimer _timer;
-
 		public virtual float TimeByType(TimeType type)
 		{
 			InitializeTimerIfNeeded();
@@ -134,6 +128,19 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 			_timer.AddMilestone(milestone);
 		}
 
+		public virtual TimerMilestone AddMilestone(TimeType type, float triggerValue, Action callback, bool isRecurring = false)
+		{
+			var milestone = new TimerMilestone(type, triggerValue, callback, isRecurring);
+			AddMilestone(milestone);
+			return milestone;
+		}
+
+		public virtual void AddRangeMilestone(TimerRangeMilestone rangeMilestone)
+		{
+			InitializeTimerIfNeeded();
+			_timer.AddRangeMilestone(rangeMilestone);
+		}
+
 		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback, bool isRecurring = false)
 		{
 			InitializeTimerIfNeeded();
@@ -157,6 +164,12 @@ namespace Nonatomic.TimerKit.Extensions.ServiceLocator
 			InitializeTimerIfNeeded();
 			_timer.RemoveMilestonesByCondition(condition);
 		}
+
+		[SerializeField] protected float _duration = 10f;
+		[SerializeField] protected bool _useScaledTime = true;
+		[SerializeField] protected bool _runOnStart = false;
+
+		protected StandardTimer _timer;
 
 		protected override void Awake()
 		{

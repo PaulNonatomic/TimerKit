@@ -10,11 +10,6 @@ namespace Nonatomic.TimerKit
 	/// </summary>
 	public class MilestoneTimer : BasicTimer, ITimer
 	{
-		private bool _processingMilestones;
-		private Dictionary<Guid, TimerMilestone> _milestonesById = new();
-		private SortedList<float, List<Guid>> _milestonesByTriggerValue = new();
-		private float? _callbackTimeOverride;
-
 		/// <summary>
 		/// Gets the time remaining. During callback execution, returns the interval value that triggered the callback.
 		/// Otherwise, returns the current timer's time remaining.
@@ -49,25 +44,6 @@ namespace Nonatomic.TimerKit
 		}
 
 		/// <summary>
-		/// Called after the timer time is updated but before completion check.
-		/// Processes milestone triggers.
-		/// </summary>
-		protected override void OnTimerUpdated()
-		{
-			CheckAndTriggerMilestones();
-		}
-
-		/// <summary>
-		/// Called when the timer is reset.
-		/// Resets all range milestones and re-adds recurring regular milestones to their initial state.
-		/// </summary>
-		protected override void OnTimerReset()
-		{
-			ResetRangeMilestones();
-			ResetRecurringRegularMilestones();
-		}
-
-		/// <summary>
 		/// Adds a milestone to the timer, which will trigger a specified action when the timer reaches a specific point.
 		/// </summary>
 		/// <param name="milestone">The milestone to add to the timer.</param>
@@ -78,6 +54,30 @@ namespace Nonatomic.TimerKit
 			var milestoneId = Guid.NewGuid();
 			_milestonesById[milestoneId] = milestone;
 			AddMilestoneToTriggerValue(milestoneId, milestone.TriggerValue);
+		}
+
+		/// <summary>
+		/// Adds a milestone to the timer by specifying its components.
+		/// </summary>
+		/// <param name="type">The time type (TimeRemaining, TimeElapsed, etc.)</param>
+		/// <param name="triggerValue">The value at which to trigger the milestone</param>
+		/// <param name="callback">The callback to execute when the milestone is reached</param>
+		/// <param name="isRecurring">Whether this milestone should re-trigger every time the timer restarts</param>
+		/// <returns>The created TimerMilestone</returns>
+		public virtual TimerMilestone AddMilestone(TimeType type, float triggerValue, Action callback, bool isRecurring = false)
+		{
+			var milestone = new TimerMilestone(type, triggerValue, callback, isRecurring);
+			AddMilestone(milestone);
+			return milestone;
+		}
+
+		/// <summary>
+		/// Adds a range milestone to the timer.
+		/// </summary>
+		/// <param name="rangeMilestone">The range milestone to add.</param>
+		public virtual void AddRangeMilestone(TimerRangeMilestone rangeMilestone)
+		{
+			AddMilestone(rangeMilestone);
 		}
 
 		/// <summary>
@@ -92,7 +92,7 @@ namespace Nonatomic.TimerKit
 		public virtual TimerRangeMilestone AddRangeMilestone(TimeType type, float rangeStart, float rangeEnd, float interval, Action callback, bool isRecurring = false)
 		{
 			var rangeMilestone = new TimerRangeMilestone(type, rangeStart, rangeEnd, interval, callback, isRecurring);
-			AddMilestone(rangeMilestone);
+			AddRangeMilestone(rangeMilestone);
 			return rangeMilestone;
 		}
 
@@ -130,6 +130,30 @@ namespace Nonatomic.TimerKit
 			var milestonesToRemove = FindMilestonesMatchingCondition(condition);
 			RemoveMilestonesByIds(milestonesToRemove);
 		}
+
+		/// <summary>
+		/// Called after the timer time is updated but before completion check.
+		/// Processes milestone triggers.
+		/// </summary>
+		protected override void OnTimerUpdated()
+		{
+			CheckAndTriggerMilestones();
+		}
+
+		/// <summary>
+		/// Called when the timer is reset.
+		/// Resets all range milestones and re-adds recurring regular milestones to their initial state.
+		/// </summary>
+		protected override void OnTimerReset()
+		{
+			ResetRangeMilestones();
+			ResetRecurringRegularMilestones();
+		}
+
+		private bool _processingMilestones;
+		private Dictionary<Guid, TimerMilestone> _milestonesById = new();
+		private SortedList<float, List<Guid>> _milestonesByTriggerValue = new();
+		private float? _callbackTimeOverride;
 
 		private void CheckAndTriggerMilestones()
 		{

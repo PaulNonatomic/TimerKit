@@ -26,6 +26,14 @@ Whether you're building a countdown for a game level, managing cooldowns, or tri
 - **Extensible Architecture**: Multiple timer classes for different complexity needs.
 - **Service Locator Support**: Optional integration with dependency injection patterns.
 
+### Recent Changes (v0.9.0)
+- **Convenience API for Milestones**: New `AddMilestone` overload accepts components directly - no need to create milestone objects manually
+- **Lifecycle Safety**: All timer methods are now safe to call before Unity initialization (Awake/OnEnable)
+- **OnDurationChanged Event**: New event fires whenever the timer duration is modified
+- **Consistent API**: Both TimerMilestone and TimerRangeMilestone now support the same creation patterns
+
+See [CHANGELOG.md](CHANGELOG.md) for complete version history.
+
 ## Installation
 Add the TimerKit package to your Unity project via the Unity Package Manager:
 
@@ -133,20 +141,29 @@ timer.OnDurationChanged += (float newDuration) => Debug.Log($"Duration changed t
 
 ### Milestones
 
-Milestones trigger callbacks when the timer reaches specific points:
+Milestones trigger callbacks when the timer reaches specific points. You can create them using either the convenience API (passing components) or by creating milestone objects manually:
 
 ```csharp
-// Basic milestone - trigger at 5 seconds remaining
+// Convenience API - pass components directly (recommended)
+timer.AddMilestone(TimeType.TimeRemaining, 5f, () => {
+    Debug.Log("5 seconds left!");
+});
+
+// Progress-based milestone
+timer.AddMilestone(TimeType.ProgressElapsed, 0.75f, () => {
+    Debug.Log("75% complete!");
+});
+
+// Recurring milestone - triggers every timer round
+timer.AddMilestone(TimeType.TimeRemaining, 5f, () => {
+    Debug.Log("5 seconds warning!");
+}, isRecurring: true);
+
+// Manual creation (if you need to store the reference)
 var milestone = new TimerMilestone(TimeType.TimeRemaining, 5f, () => {
     Debug.Log("5 seconds left!");
 });
 timer.AddMilestone(milestone);
-
-// Progress-based milestone - trigger at 75% completion
-var progressMilestone = new TimerMilestone(TimeType.ProgressElapsed, 0.75f, () => {
-    Debug.Log("75% complete!");
-});
-timer.AddMilestone(progressMilestone);
 
 // Remove milestones
 timer.RemoveMilestone(milestone);
@@ -156,11 +173,11 @@ timer.RemoveMilestonesByCondition(m => m.TriggerValue < 3f);
 
 ### Range Milestones
 
-Range milestones trigger at regular intervals within a specified range:
+Range milestones trigger at regular intervals within a specified range. Like regular milestones, you can create them using either the convenience API or by creating instances manually:
 
 ```csharp
-// Trigger every second for the last 10 seconds
-var rangeMilestone = timer.AddRangeMilestone(
+// Convenience API - pass components directly (recommended)
+timer.AddRangeMilestone(
     TimeType.TimeRemaining, // Type of time to track
     10f,                    // Range start (10 seconds remaining)
     0f,                     // Range end (0 seconds remaining)
@@ -176,6 +193,26 @@ timer.AddRangeMilestone(
     0.5f,                   // Every 0.5 seconds
     () => PlayTickSound()   // Callback
 );
+
+// Recurring range milestone - triggers every timer round
+timer.AddRangeMilestone(
+    TimeType.TimeRemaining,
+    10f,
+    0f,
+    2f,
+    () => Debug.Log("Every 2 seconds!"),
+    isRecurring: true
+);
+
+// Manual creation (if you need to store the reference)
+var rangeMilestone = new TimerRangeMilestone(
+    TimeType.TimeRemaining,
+    10f,
+    0f,
+    1f,
+    () => Debug.Log("Countdown warning!")
+);
+timer.AddRangeMilestone(rangeMilestone);
 ```
 
 ### TimeType Options
@@ -193,22 +230,22 @@ timer.AddRangeMilestone(
 public class LevelTimer : MonoBehaviour
 {
     private Timer _timer;
-    
+
     void Start()
     {
         _timer = gameObject.AddComponent<Timer>();
         _timer.Duration = 300f; // 5 minutes
-        
-        // Add warning milestones
-        _timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 60f, () => 
-            ShowWarning("1 minute remaining!")));
-        _timer.AddMilestone(new TimerMilestone(TimeType.TimeRemaining, 30f, () => 
-            ShowWarning("30 seconds remaining!")));
-            
+
+        // Add warning milestones using convenience API
+        _timer.AddMilestone(TimeType.TimeRemaining, 60f, () =>
+            ShowWarning("1 minute remaining!"));
+        _timer.AddMilestone(TimeType.TimeRemaining, 30f, () =>
+            ShowWarning("30 seconds remaining!"));
+
         // Add countdown for last 10 seconds
-        _timer.AddRangeMilestone(TimeType.TimeRemaining, 10f, 0f, 1f, () => 
+        _timer.AddRangeMilestone(TimeType.TimeRemaining, 10f, 0f, 1f, () =>
             PlayCountdownBeep());
-            
+
         _timer.OnComplete += () => EndLevel();
         _timer.StartTimer();
     }

@@ -12,6 +12,13 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 	
 	public abstract class BaseTimerService<T> : ServiceKitBehaviour<T> where T : class, IBaseTimerService
 	{
+		public event Action OnStart;
+		public event Action OnComplete;
+		public event Action OnResume;
+		public event Action OnStop;
+		public event Action<IReadOnlyTimer> OnTick;
+		public event Action<float> OnDurationChanged;
+
 		public float Duration
 		{
 			get
@@ -71,38 +78,6 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 			}
 		}
 
-		protected ITimer Timer;
-
-		private Action _onCompleteHandler;
-		private Action _onResumeHandler;
-
-		private Action _onStartHandler;
-		private Action _onStopHandler;
-		private Action<IReadOnlyTimer> _onTickHandler;
-		private Action<float> _onDurationChangedHandler;
-
-		protected override void OnDestroy()
-		{
-			if (IsServiceReady && Timer != null)
-			{
-				Timer.OnStart -= _onStartHandler;
-				Timer.OnResume -= _onResumeHandler;
-				Timer.OnComplete -= _onCompleteHandler;
-				Timer.OnStop -= _onStopHandler;
-				Timer.OnTick -= _onTickHandler;
-				Timer.OnDurationChanged -= _onDurationChangedHandler;
-			}
-
-			base.OnDestroy();
-		}
-
-		public event Action OnStart;
-		public event Action OnComplete;
-		public event Action OnResume;
-		public event Action OnStop;
-		public event Action<IReadOnlyTimer> OnTick;
-		public event Action<float> OnDurationChanged;
-
 		public float TimeByType(TimeType type)
 		{
 			EnsureTimerInitialized();
@@ -151,6 +126,13 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 			Timer.AddMilestone(milestone);
 		}
 
+		public TimerMilestone AddMilestone(TimeType type, float triggerValue, Action callback, bool isRecurring = false)
+		{
+			var milestone = new TimerMilestone(type, triggerValue, callback, isRecurring);
+			AddMilestone(milestone);
+			return milestone;
+		}
+
 		public void RemoveMilestone(TimerMilestone milestone)
 		{
 			EnsureTimerInitialized();
@@ -169,10 +151,45 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 			Timer.RemoveMilestonesByCondition(condition);
 		}
 
+		public void AddRangeMilestone(TimerRangeMilestone rangeMilestone)
+		{
+			EnsureTimerInitialized();
+			Timer.AddRangeMilestone(rangeMilestone);
+		}
+
 		public TimerRangeMilestone AddRangeMilestone(TimeType timeType, float min, float max, float interval, Action action, bool isRecurring = false)
 		{
 			EnsureTimerInitialized();
 			return Timer.AddRangeMilestone(timeType, min, max, interval, action, isRecurring);
+		}
+
+		protected ITimer Timer;
+
+		private Action _onCompleteHandler;
+		private Action _onResumeHandler;
+		private Action _onStartHandler;
+		private Action _onStopHandler;
+		private Action<IReadOnlyTimer> _onTickHandler;
+		private Action<float> _onDurationChangedHandler;
+
+		protected override void OnDestroy()
+		{
+			if (IsServiceReady && Timer != null)
+			{
+				Timer.OnStart -= _onStartHandler;
+				Timer.OnResume -= _onResumeHandler;
+				Timer.OnComplete -= _onCompleteHandler;
+				Timer.OnStop -= _onStopHandler;
+				Timer.OnTick -= _onTickHandler;
+				Timer.OnDurationChanged -= _onDurationChangedHandler;
+			}
+
+			base.OnDestroy();
+		}
+
+		protected override void InitializeService()
+		{
+			EnsureTimerInitialized();
 		}
 
 		/// <summary>
@@ -197,11 +214,6 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 			Timer.OnStop += _onStopHandler;
 			Timer.OnTick += _onTickHandler;
 			Timer.OnDurationChanged += _onDurationChangedHandler;
-		}
-
-		protected override void InitializeService()
-		{
-			EnsureTimerInitialized();
 		}
 	}
 }
