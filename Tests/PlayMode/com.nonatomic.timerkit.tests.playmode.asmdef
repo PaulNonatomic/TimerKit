@@ -1,19 +1,19 @@
 {
-    "name": "com.nonatomic.timerkit.tests.editmode",
+    "name": "com.nonatomic.timerkit.tests.playmode",
     "rootNamespace": "",
     "references": [
-        "GUID:eb6b9fe13e7dd23478fca248f8928c7c"
+        "GUID:eb6b9fe13e7dd23478fca248f8928c7c",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
     ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
         "nunit.framework.dll"
     ],
-    "autoReferenced": true,
+    "autoReferenced": false,
     "defineConstraints": [
         "UNITY_INCLUDE_TESTS"
     ],
