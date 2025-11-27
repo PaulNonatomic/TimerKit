@@ -1,4 +1,23 @@
 # Change Log
+## [0.10.0] - 2025-11-27
+### Changed
+- **Zero-Allocation Milestone Processing**: Complete rewrite of milestone system for allocation-free per-frame updates
+- Replaced all `foreach` loops with index-based iteration to avoid enumerator allocations
+- Pooled all temporary collections at class level (HashSet, List) to eliminate per-frame allocations
+- Converted tuple-returning methods to use `out` parameters to avoid boxing
+- Removed LINQ dependency (`System.Linq`) from MilestoneTimer
+
+### Performance
+- `MilestoneTimer.Update()` now allocates 0 bytes per frame (previously ~160-200 bytes)
+- `ProcessAllTriggeredMilestones()` allocates 0 bytes (previously ~104 bytes)
+- `CheckAndTriggerMilestones()` allocates 0 bytes with early exit when no milestones exist
+- Milestone triggering allocates 0 bytes per trigger
+- Range milestone processing allocates 0 bytes
+
+### Added
+- Early exit optimization in `CheckAndTriggerMilestones()` when no milestones are registered
+- Comprehensive allocation test suite (EditMode and PlayMode) to prevent performance regressions
+
 ## [0.9.0] - 2025-10-26
 ### Added
 - **Convenience API for AddMilestone**: New overload accepting milestone components directly

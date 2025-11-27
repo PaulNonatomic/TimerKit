@@ -16,6 +16,7 @@ Whether you're building a countdown for a game level, managing cooldowns, or tri
 </div>
 
 ### Features
+- **Zero GC Allocations**: Allocation-free per-frame updates for smooth performance.
 - **Basic Operations**: Start, stop, reset, and query the timer's state.
 - **Pause & Resume**: Pause the timer and pick up where you left off.
 - **Fast Forward & Rewind**: Skip ahead or backtrack through time.
@@ -26,13 +27,32 @@ Whether you're building a countdown for a game level, managing cooldowns, or tri
 - **Extensible Architecture**: Multiple timer classes for different complexity needs.
 - **Service Locator Support**: Optional integration with dependency injection patterns.
 
-### Recent Changes (v0.9.0)
-- **Convenience API for Milestones**: New `AddMilestone` overload accepts components directly - no need to create milestone objects manually
-- **Lifecycle Safety**: All timer methods are now safe to call before Unity initialization (Awake/OnEnable)
-- **OnDurationChanged Event**: New event fires whenever the timer duration is modified
-- **Consistent API**: Both TimerMilestone and TimerRangeMilestone now support the same creation patterns
+### Recent Changes (v0.10.0)
+- **Zero-Allocation Updates**: Complete rewrite of milestone processing for allocation-free per-frame updates
+- **Performance Optimized**: All hot-path code now allocates 0 bytes per frame
+- **Early Exit Optimization**: Timer skips milestone processing entirely when no milestones exist
 
 See [CHANGELOG.md](CHANGELOG.md) for complete version history.
+
+### Performance
+
+TimerKit is designed for **zero per-frame allocations** in production scenarios:
+
+| Operation | Allocations |
+|-----------|-------------|
+| BasicTimer.Update() | 0 bytes |
+| StandardTimer.Update() (no milestones) | 0 bytes |
+| StandardTimer.Update() (with milestones) | 0 bytes |
+| Milestone triggering | 0 bytes |
+| Range milestone processing | 0 bytes |
+
+**Optimizations include:**
+- Index-based iteration instead of `foreach` to avoid enumerator allocations
+- Pooled collections reused across frames
+- Early exit when no milestones are registered
+- No LINQ or temporary object creation in hot paths
+
+This makes TimerKit suitable for performance-critical applications where GC pressure must be minimized.
 
 ## Installation
 Add the TimerKit package to your Unity project via the Unity Package Manager:

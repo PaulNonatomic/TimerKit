@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Nonatomic.TimerKit
 {
@@ -155,11 +154,27 @@ namespace Nonatomic.TimerKit
 		private SortedList<float, List<Guid>> _milestonesByTriggerValue = new();
 		private float? _callbackTimeOverride;
 
+		// Pooled collections to avoid allocations during milestone processing
+		private HashSet<(float triggerValue, Guid id)> _alreadyTriggeredMilestones = new();
+		private List<(Guid id, TimerRangeMilestone milestone)> _rangeMilestonesToReAdd = new();
+
+		// Pooled collections for CollectMilestonesForProcessing
+		private List<(TimerMilestone milestone, float? intervalValue)> _milestonesToTrigger = new();
+		private List<Guid> _exhaustedMilestoneIds = new();
+		private List<(Guid id, TimerRangeMilestone milestone)> _recurringMilestones = new();
+		private List<Guid> _recurringRegularMilestoneIds = new();
+		private HashSet<Guid> _processedIds = new();
+
+		// Pooled collection for CalculateCrossedIntervals
+		private List<float> _crossedIntervals = new();
+
 		private void CheckAndTriggerMilestones()
 		{
 			if (_processingMilestones) return;
 			// Only trigger milestones when the timer is actively running
 			if (!IsRunning) return;
+			// Early exit if no milestones exist
+			if (_milestonesByTriggerValue.Count == 0) return;
 
 			_processingMilestones = true;
 
@@ -175,78 +190,89 @@ namespace Nonatomic.TimerKit
 
 		private void ProcessAllTriggeredMilestones()
 		{
-			var alreadyTriggeredMilestones = new HashSet<(float triggerValue, Guid id)>();
-			var rangeMilestonesToReAdd = new List<(Guid id, TimerRangeMilestone milestone)>();
+			// Clear pooled collections instead of allocating new ones
+			_alreadyTriggeredMilestones.Clear();
+			_rangeMilestonesToReAdd.Clear();
 
-			while (TryProcessNextMilestone(alreadyTriggeredMilestones, rangeMilestonesToReAdd))
+			while (TryProcessNextMilestone(_alreadyTriggeredMilestones, _rangeMilestonesToReAdd))
 			{
 				// Continue processing until no more milestones to trigger
 			}
 
-			ReAddRangeMilestones(rangeMilestonesToReAdd);
+			ReAddRangeMilestones(_rangeMilestonesToReAdd);
 		}
 
 		private bool TryProcessNextMilestone(HashSet<(float triggerValue, Guid id)> alreadyTriggeredMilestones, List<(Guid id, TimerRangeMilestone milestone)> rangeMilestonesToReAdd)
 		{
-			var nextMilestone = FindNextMilestoneToProcess(alreadyTriggeredMilestones);
-			if (!nextMilestone.HasValue) return false;
+			if (!TryFindNextMilestoneToProcess(alreadyTriggeredMilestones, out var triggerValue, out var milestoneId))
+				return false;
 
-			MarkMilestonesAsProcessed(nextMilestone.Value.triggerValue, alreadyTriggeredMilestones);
-			ProcessMilestonesAtTriggerValue(nextMilestone.Value.triggerValue, rangeMilestonesToReAdd);
+			MarkMilestonesAsProcessed(triggerValue, alreadyTriggeredMilestones);
+			ProcessMilestonesAtTriggerValue(triggerValue, rangeMilestonesToReAdd);
 			return true;
 		}
 
-		private (float triggerValue, Guid id)? FindNextMilestoneToProcess(HashSet<(float, Guid)> alreadyTriggeredMilestones)
+		private bool TryFindNextMilestoneToProcess(HashSet<(float, Guid)> alreadyTriggeredMilestones, out float triggerValue, out Guid milestoneId)
 		{
-			float? lowestUnprocessedTriggerValue = null;
-			Guid? correspondingMilestoneId = null;
+			triggerValue = default;
+			milestoneId = default;
+			bool found = false;
+			float lowestUnprocessedTriggerValue = float.MaxValue;
 
-			foreach (var kvp in _milestonesByTriggerValue)
+			// Use index-based iteration to avoid SortedList.GetEnumerator() allocation
+			var keys = _milestonesByTriggerValue.Keys;
+			var values = _milestonesByTriggerValue.Values;
+			var count = _milestonesByTriggerValue.Count;
+
+			for (int i = 0; i < count; i++)
 			{
-				var milestoneId = FindTriggeredMilestoneInList(kvp.Key, kvp.Value, alreadyTriggeredMilestones);
-				
-				if (!milestoneId.HasValue) continue;
-				if (!ShouldUpdateLowestTriggerValue(kvp.Key, lowestUnprocessedTriggerValue)) continue;
-				
-				lowestUnprocessedTriggerValue = kvp.Key;
-				correspondingMilestoneId = milestoneId.Value;
+				var currentTriggerValue = keys[i];
+				var milestoneIds = values[i];
+
+				if (!TryFindTriggeredMilestoneInList(currentTriggerValue, milestoneIds, alreadyTriggeredMilestones, out var foundMilestoneId))
+					continue;
+
+				if (currentTriggerValue >= lowestUnprocessedTriggerValue)
+					continue;
+
+				lowestUnprocessedTriggerValue = currentTriggerValue;
+				triggerValue = currentTriggerValue;
+				milestoneId = foundMilestoneId;
+				found = true;
 			}
 
-			return CreateMilestoneResult(lowestUnprocessedTriggerValue, correspondingMilestoneId);
+			return found;
 		}
 
-		private bool ShouldUpdateLowestTriggerValue(float currentValue, float? lowestValue)
+		private bool TryFindTriggeredMilestoneInList(float triggerValue, List<Guid> milestoneIds, HashSet<(float, Guid)> alreadyTriggeredMilestones, out Guid milestoneId)
 		{
-			return lowestValue == null || currentValue < lowestValue.Value;
-		}
-
-		private (float triggerValue, Guid id)? CreateMilestoneResult(float? triggerValue, Guid? milestoneId)
-		{
-			if (triggerValue == null || milestoneId == null) return null;
-			return (triggerValue.Value, milestoneId.Value);
-		}
-
-		private Guid? FindTriggeredMilestoneInList(float triggerValue, List<Guid> milestoneIds, HashSet<(float, Guid)> alreadyTriggeredMilestones)
-		{
-			foreach (var id in milestoneIds)
+			// Use index-based iteration to avoid List enumerator allocation
+			var count = milestoneIds.Count;
+			for (int i = 0; i < count; i++)
 			{
+				var id = milestoneIds[i];
 				if (alreadyTriggeredMilestones.Contains((triggerValue, id))) continue;
 				if (!_milestonesById.TryGetValue(id, out var milestone)) continue;
 				if (!ShouldTrigger(milestone)) continue;
 
-				return id;
+				milestoneId = id;
+				return true;
 			}
 
-			return null;
+			milestoneId = default;
+			return false;
 		}
 
 		private void MarkMilestonesAsProcessed(float triggerValue, HashSet<(float, Guid)> alreadyTriggeredMilestones)
 		{
 			if (!_milestonesByTriggerValue.TryGetValue(triggerValue, out var idsToProcess)) return;
 
-			foreach (var id in idsToProcess.ToList())
+			// Use index-based iteration to avoid List enumerator allocation
+			// No need for .ToList() since we're only reading, not modifying
+			var count = idsToProcess.Count;
+			for (int i = 0; i < count; i++)
 			{
-				alreadyTriggeredMilestones.Add((triggerValue, id));
+				alreadyTriggeredMilestones.Add((triggerValue, idsToProcess[i]));
 			}
 		}
 
@@ -254,80 +280,92 @@ namespace Nonatomic.TimerKit
 		{
 			if (!_milestonesByTriggerValue.TryGetValue(triggerValue, out var triggerIds) || triggerIds.Count == 0) return;
 
-			var collectedMilestones = CollectMilestonesForProcessing(triggerIds, triggerValue);
+			// CollectMilestonesForProcessing now populates pooled class-level collections
+			CollectMilestonesForProcessing(triggerIds, triggerValue);
 
 			RemoveMilestonesFromTriggerValue(triggerValue);
-			RemoveExhaustedMilestones(collectedMilestones.exhaustedMilestoneIds);
-			rangeMilestonesToReAdd.AddRange(collectedMilestones.recurringMilestones);
-			
-			InvokeMilestoneCallbacks(collectedMilestones.milestonesToTrigger);
+			RemoveExhaustedMilestones(_exhaustedMilestoneIds);
+
+			// Use index-based iteration to avoid List enumerator allocation
+			var recurringCount = _recurringMilestones.Count;
+			for (int i = 0; i < recurringCount; i++)
+			{
+				rangeMilestonesToReAdd.Add(_recurringMilestones[i]);
+			}
+
+			InvokeMilestoneCallbacks(_milestonesToTrigger);
 		}
 
-		private (List<(TimerMilestone milestone, float? intervalValue)> milestonesToTrigger, List<Guid> exhaustedMilestoneIds, List<(Guid id, TimerRangeMilestone milestone)> recurringMilestones, List<Guid> recurringRegularMilestoneIds)
-			CollectMilestonesForProcessing(List<Guid> triggerIds, float triggerValue)
+		private void CollectMilestonesForProcessing(List<Guid> triggerIds, float triggerValue)
 		{
-			var milestonesToTrigger = new List<(TimerMilestone milestone, float? intervalValue)>();
-			var exhaustedMilestoneIds = new List<Guid>();
-			var recurringMilestones = new List<(Guid id, TimerRangeMilestone milestone)>();
-			var recurringRegularMilestoneIds = new List<Guid>();
-			var processedIds = new HashSet<Guid>();
+			// Clear pooled collections instead of allocating new ones
+			_milestonesToTrigger.Clear();
+			_exhaustedMilestoneIds.Clear();
+			_recurringMilestones.Clear();
+			_recurringRegularMilestoneIds.Clear();
+			_processedIds.Clear();
 
-			foreach (var id in triggerIds)
+			// Use index-based iteration to avoid List enumerator allocation
+			var count = triggerIds.Count;
+			for (int i = 0; i < count; i++)
 			{
+				var id = triggerIds[i];
+
 				// Skip duplicates within the same trigger value
-				if (!processedIds.Add(id)) continue;
+				if (!_processedIds.Add(id)) continue;
 
 				if (!_milestonesById.TryGetValue(id, out var milestone)) continue;
 
 				if (milestone is not TimerRangeMilestone rangeMilestone)
 				{
-					milestonesToTrigger.Add((milestone, null));
+					_milestonesToTrigger.Add((milestone, null));
 					// Only mark as exhausted if not recurring
 					if (!milestone.IsRecurring)
 					{
-						exhaustedMilestoneIds.Add(id);
+						_exhaustedMilestoneIds.Add(id);
 					}
 					else
 					{
 						// Recurring regular milestones need to be re-added
-						recurringRegularMilestoneIds.Add(id);
+						_recurringRegularMilestoneIds.Add(id);
 					}
 					continue;
 				}
 
 				// Calculate all crossed intervals for range milestones
-				var crossedIntervals = CalculateCrossedIntervals(rangeMilestone);
+				CalculateCrossedIntervals(rangeMilestone);
 
 				// Add a callback invocation for each crossed interval
-				foreach (var intervalValue in crossedIntervals)
+				var crossedCount = _crossedIntervals.Count;
+				for (int j = 0; j < crossedCount; j++)
 				{
-					milestonesToTrigger.Add((rangeMilestone, intervalValue));
+					_milestonesToTrigger.Add((rangeMilestone, _crossedIntervals[j]));
 				}
 
 				// Update to the last crossed value
-				if (crossedIntervals.Count > 0)
+				if (crossedCount > 0)
 				{
-					rangeMilestone.LastTriggeredValue = crossedIntervals[crossedIntervals.Count - 1];
+					rangeMilestone.LastTriggeredValue = _crossedIntervals[crossedCount - 1];
 				}
 
 				// Check if more intervals remain
 				if (rangeMilestone.HasMoreIntervals())
 				{
-					recurringMilestones.Add((id, rangeMilestone));
+					_recurringMilestones.Add((id, rangeMilestone));
 				}
 				else if (!rangeMilestone.IsRecurring)
 				{
 					// Only remove if not recurring
-					exhaustedMilestoneIds.Add(id);
+					_exhaustedMilestoneIds.Add(id);
 				}
 			}
-
-			return (milestonesToTrigger, exhaustedMilestoneIds, recurringMilestones, recurringRegularMilestoneIds);
 		}
 
-		private List<float> CalculateCrossedIntervals(TimerRangeMilestone rangeMilestone)
+		private void CalculateCrossedIntervals(TimerRangeMilestone rangeMilestone)
 		{
-			var crossedIntervals = new List<float>();
+			// Clear pooled collection instead of allocating a new one
+			_crossedIntervals.Clear();
+
 			var currentValue = GetCurrentValueForTimeType(rangeMilestone.Type);
 			var lastValue = rangeMilestone.LastTriggeredValue ?? rangeMilestone.RangeStart;
 			var interval = rangeMilestone.Interval;
@@ -345,7 +383,7 @@ namespace Nonatomic.TimerKit
 
 				while (nextTrigger >= rangeEnd && nextTrigger >= currentValue && nextTrigger <= Duration)
 				{
-					crossedIntervals.Add(nextTrigger);
+					_crossedIntervals.Add(nextTrigger);
 					nextTrigger -= interval;
 				}
 			}
@@ -360,12 +398,10 @@ namespace Nonatomic.TimerKit
 
 				while (nextTrigger <= rangeEnd && nextTrigger <= currentValue && nextTrigger <= Duration)
 				{
-					crossedIntervals.Add(nextTrigger);
+					_crossedIntervals.Add(nextTrigger);
 					nextTrigger += interval;
 				}
 			}
-
-			return crossedIntervals;
 		}
 
 		private float GetCurrentValueForTimeType(TimeType type)
@@ -387,16 +423,21 @@ namespace Nonatomic.TimerKit
 
 		private void RemoveExhaustedMilestones(List<Guid> exhaustedMilestoneIds)
 		{
-			foreach (var id in exhaustedMilestoneIds)
+			// Use index-based iteration to avoid List enumerator allocation
+			var count = exhaustedMilestoneIds.Count;
+			for (int i = 0; i < count; i++)
 			{
-				_milestonesById.Remove(id);
+				_milestonesById.Remove(exhaustedMilestoneIds[i]);
 			}
 		}
 
 		private void ReAddRangeMilestones(List<(Guid id, TimerRangeMilestone milestone)> recurringMilestones)
 		{
-			foreach (var (id, rangeMilestone) in recurringMilestones)
+			// Use index-based iteration to avoid List enumerator allocation
+			var count = recurringMilestones.Count;
+			for (int i = 0; i < count; i++)
 			{
+				var (id, rangeMilestone) = recurringMilestones[i];
 				rangeMilestone.UpdateTriggerValue();
 				AddMilestoneToTriggerValue(id, rangeMilestone.TriggerValue);
 			}
@@ -404,16 +445,21 @@ namespace Nonatomic.TimerKit
 
 		private void ReAddRecurringRegularMilestones(float triggerValue, List<Guid> recurringRegularMilestoneIds)
 		{
-			foreach (var id in recurringRegularMilestoneIds)
+			// Use index-based iteration to avoid List enumerator allocation
+			var count = recurringRegularMilestoneIds.Count;
+			for (int i = 0; i < count; i++)
 			{
-				AddMilestoneToTriggerValue(id, triggerValue);
+				AddMilestoneToTriggerValue(recurringRegularMilestoneIds[i], triggerValue);
 			}
 		}
 
 		private void InvokeMilestoneCallbacks(List<(TimerMilestone milestone, float? intervalValue)> milestonesToTrigger)
 		{
-			foreach (var (milestone, intervalValue) in milestonesToTrigger)
+			// Use index-based iteration to avoid List enumerator allocation
+			var count = milestonesToTrigger.Count;
+			for (int i = 0; i < count; i++)
 			{
+				var (milestone, intervalValue) = milestonesToTrigger[i];
 				try
 				{
 					// Temporarily override timer values so callbacks see the exact interval that triggered them
@@ -501,8 +547,11 @@ namespace Nonatomic.TimerKit
 
 		private void RemoveMilestonesByIds(List<Guid> milestoneIds)
 		{
-			foreach (var id in milestoneIds)
+			// Use index-based iteration to avoid List enumerator allocation
+			var count = milestoneIds.Count;
+			for (int i = 0; i < count; i++)
 			{
+				var id = milestoneIds[i];
 				if (!_milestonesById.TryGetValue(id, out var milestone)) continue;
 				RemoveMilestoneById(id, milestone.TriggerValue);
 			}
@@ -548,8 +597,11 @@ namespace Nonatomic.TimerKit
 
 		private void UpdateRangeMilestonePositions(List<(Guid id, TimerRangeMilestone milestone, float oldTriggerValue)> rangeMilestonesToUpdate)
 		{
-			foreach (var (id, rangeMilestone, oldTriggerValue) in rangeMilestonesToUpdate)
+			// Use index-based iteration to avoid List enumerator allocation
+			var count = rangeMilestonesToUpdate.Count;
+			for (int i = 0; i < count; i++)
 			{
+				var (id, rangeMilestone, oldTriggerValue) = rangeMilestonesToUpdate[i];
 				RemoveMilestoneFromTriggerValue(id, oldTriggerValue);
 				AddMilestoneToTriggerValue(id, rangeMilestone.TriggerValue);
 			}
