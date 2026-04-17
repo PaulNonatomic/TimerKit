@@ -55,12 +55,22 @@ TimerKit is designed for **zero per-frame allocations** in production scenarios:
 This makes TimerKit suitable for performance-critical applications where GC pressure must be minimized.
 
 ## Installation
-Add the TimerKit package to your Unity project via the Unity Package Manager:
 
-1. Open the Package Manager (`Window > Package Manager`).
-2. Click the **+** button and select **"Add package from git URL"**.
-3. Enter: `https://github.com/PaulNonatomic/TimerKit.git`.
-4. Click **Add**.
+Add **TimerKit** to your Unity project via Package Manager:
+
+1. Open **Window > Package Manager**
+2. Click **+** > **Add package from git URL**
+3. Enter:
+```
+https://www.pkglnk.dev/timerkit.git
+```
+
+[![pkglnk](https://www.pkglnk.dev/card/timerkit.svg)](https://www.pkglnk.dev/pkg/timerkit)
+
+## Support
+If you like my work then please consider showing your support by buying me a brew
+<br><br>
+<a href="https://www.buymeacoffee.com/nonatomic" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-green.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 ## Timer Architecture
 
