@@ -1,4 +1,12 @@
 # Change Log
+## [0.11.0] - 2026-04-17
+### Changed
+- **ServiceKit V2 Compatibility**: Migrated to ServiceKit 2.0 attribute-based registration
+  - `BaseTimerService` is now non-generic (was `BaseTimerService<T>`)
+  - Concrete timer services use `[Service(typeof(ITimerService))]` attribute
+  - Updated lifecycle methods to match ServiceKit 2.0 conventions
+  - ServiceKit version constraint bumped to 2.4.0+
+
 ## [0.10.0] - 2025-11-27
 ### Changed
 - **Zero-Allocation Milestone Processing**: Complete rewrite of milestone system for allocation-free per-frame updates

@@ -10,7 +10,7 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 	
 	}
 	
-	public abstract class BaseTimerService<T> : ServiceKitBehaviour<T> where T : class, IBaseTimerService
+	public abstract class BaseTimerService : ServiceKitBehaviour
 	{
 		public event Action OnStart;
 		public event Action OnComplete;
@@ -174,7 +174,7 @@ namespace Nonatomic.TimerKit.Extensions.ServiceKit
 
 		protected override void OnDestroy()
 		{
-			if (IsServiceReady && Timer != null)
+			if (Timer != null)
 			{
 				Timer.OnStart -= _onStartHandler;
 				Timer.OnResume -= _onResumeHandler;
