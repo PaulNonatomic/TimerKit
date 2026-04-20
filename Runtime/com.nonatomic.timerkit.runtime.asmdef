@@ -20,7 +20,7 @@
         },
         {
             "name": "com.nonatomic.servicekit",
-            "expression": "2.4.0",
+            "expression": "2.0.0",
             "define": "TIMERKIT_SERVICEKIT_SUPPORT"
         }
     ],

@@ -1,4 +1,8 @@
 # Change Log
+## [0.11.1] - 2026-04-20
+### Fixed
+- **ServiceKit version constraint**: Lowered the `TIMERKIT_SERVICEKIT_SUPPORT` version define floor from `2.4.0` to `2.0.0`. ServiceKit has only released up to 2.0.2, so the previous constraint meant the ServiceKit extension (`BaseTimerService`, `ITimerService`, etc. under `Nonatomic.TimerKit.Extensions.ServiceKit`) never compiled in consumer projects. Projects on ServiceKit 2.0.x can now derive from `BaseTimerService` as documented.
+
 ## [0.11.0] - 2026-04-17
 ### Changed
 - **ServiceKit V2 Compatibility**: Migrated to ServiceKit 2.0 attribute-based registration
